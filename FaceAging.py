@@ -269,10 +269,11 @@ class FaceAging(object):
                     # ********************* 1 no shorten inner distance & largen inter distance *************************
                     # self.E_model, batch_z = generate_latant_z(self.E_model, batch_real_images, batch_real_label_age)
 
-                    # ********************* 2 shorten inner distance & no largen inter distance *************************
-                    self.E_model, batch_z, batch_latent_center = generate_latent_center(self.E_model, batch_real_images, batch_files_name,
+                    # ********************* 2 shorten inner distance & largen inter distance *************************
+                    self.E_model, batch_image_for_center, batch_age_conv_for_center, batch_latent_center = \
+                        generate_latent_center(self.E_model, batch_real_images, batch_files_name,
                                            self.size_age, self.dataset_name, self.enable_tile_label, self.tile_ratio)
-                    loss_E_batch = self.E_model.train_on_batch([batch_real_images, batch_real_label_age_conv], batch_latent_center)
+                    loss_E_batch = self.E_model.train_on_batch([batch_image_for_center, batch_age_conv_for_center], batch_latent_center)
 
                     loss_E.append(loss_E_batch)
                     end_time = time.time()
