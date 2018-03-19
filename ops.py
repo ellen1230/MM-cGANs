@@ -125,10 +125,10 @@ def save_image(images, size_image, image_value_range, num_input_channels, epoch,
 
 def save_loss(save_dir, loss_E, loss_Dimg, loss_GD1, loss_GD2):
 
-    np.save(save_dir+'loss_E.npy', np.array(loss_E))
-    np.save(save_dir+'loss_Dimg.npy', np.array(loss_Dimg))
-    np.save(save_dir+'loss_GD1.npy', np.array(loss_GD1))
-    np.save(save_dir+'loss_GD2.npy', np.array(loss_GD2))
+    np.save(save_dir+'/loss_E.npy', np.array(loss_E))
+    np.save(save_dir+'/loss_Dimg.npy', np.array(loss_Dimg))
+    np.save(save_dir+'/loss_GD1.npy', np.array(loss_GD1))
+    np.save(save_dir+'/loss_GD2.npy', np.array(loss_GD2))
 
     # f_e = open(save_dir+'/loss_e', 'wb')
     # f_dimg = open(save_dir+'/loss_dimg', 'wb')
@@ -143,6 +143,7 @@ def save_loss(save_dir, loss_E, loss_Dimg, loss_GD1, loss_GD2):
     # f_e.close(), f_dimg.close(), f_gd1.close(), f_gd2
 
 def load_celebrity_image(path, file_name, picked_names):# num is size of random picked images
+    print(1111111111111111111111111111111111)
     if str(file_name).find('.mat'):
         if str(file_name).find('celebrityImageData') != -1:
             f = scio.loadmat(path + file_name)

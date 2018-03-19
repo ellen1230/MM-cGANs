@@ -26,7 +26,7 @@ class FaceAging(object):
                  num_Dz_channels=[64, 32, 16, 1],  # number of channels of every conv layers of discriminator_z
 
                  #num_Dimg_channels=3,  # number of channels of discriminator input image
-                 num_Dimg_channels=[64, 64*2, 64*4, 64*8],  #number of channels of  every conv layers of discriminator_img
+                 num_Dimg_channels=[16, 16*2, 16*4, 16*8],  #number of channels of  every conv layers of discriminator_img
                  num_Dimg_fc_channels = 1024, # number of channels of last fc layer of discriminator_img
 
 
@@ -322,12 +322,12 @@ class FaceAging(object):
                         batch_fake_image2 = self.G_model.predict([latant_z, batch_real_label_age])
                         save_image(batch_fake_image2, self.size_image,
                                    self.image_value_range, self.num_input_channels, epoch, index_batch, self.image_mode,
-                                   self.save_dir+'/image/')
+                                   self.save_dir+'/image')
                         # save_weights(self.save_dir+'/weight/', self.E_model,
                         #              self.G_model,self.D_z_model, self.D_img_model, epoch, index_batch)
-                        save_weights(self.save_dir + '/weight/', self.E_model,
+                        save_weights(self.save_dir + '/weight', self.E_model,
                                      self.G_model, None, self.D_img_model, epoch, index_batch)
-                        save_loss(self.save_dir+'/metric/', loss_E, loss_Dimg, loss_GD1, loss_GD2)
+                        save_loss(self.save_dir+'/metric', loss_E, loss_Dimg, loss_GD1, loss_GD2)
 
 
     # def generate_fake_image(self, size_batch):
