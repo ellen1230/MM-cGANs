@@ -3,6 +3,7 @@ from ops import load_image, age_group_label, duplicate, load_weights, \
 import os
 import numpy as np
 import time
+from DataClass import Sort_by_AgeLabel_Name
 
 def train_E_model(e_model, size_age, file_names,
                   dataset_name, enable_tile_label, tile_ratio, image_value_range):
@@ -16,23 +17,40 @@ def train_E_model(e_model, size_age, file_names,
     # isRandom: shuffle the images name or not
 
     # first edition: e_model center
-    # 1、(random?) images map to latant space
-    # 2、latant array to calculate a center
-    # 3、copy the center array len(images) time as target_latant
-    # 4、loss_e is self.e_model.train on mean_squared_error
+    # 1 (random) images map to latant space
+    # 2 latant array to calculate a center
+    # 3 copy the center array len(images) time as target_latant
+    # 4 loss_e is self.e_model.train on mean_squared_error
 
     images_age_label_identity_list = \
-        load_celebrity_image('./data/mat/', 'celebrityImageData.mat', file_names)
+            load_celebrity_image('./data/mat/', 'celebrityImageData.mat', file_names)
     [batch_img, batch_age_conv, batch_latant, batch_latant_center] = \
         generate_latent_center(images_age_label_identity_list, e_model,
                              size_age, dataset_name, enable_tile_label, tile_ratio, image_value_range)
 
     loss_batch_e = e_model.train_on_batch([batch_img, batch_age_conv], batch_latant_center)
+
+
+
+    # ****************************** reconsider the complexity of algorithm ********************************
+    # give up on the load mat + create the instances of Class CelebrityImageInfo
+    # just using the file_names to operate
+    # images_age_label_identity_list = \
+    #     load_celebrity_image('./data/mat/', 'celebrityImageData.mat', file_names)
+    # [batch_img, batch_age_conv, batch_latant, batch_latant_center] = \
+    #     generate_latent_center(images_age_label_identity_list, e_model,
+    #                          size_age, dataset_name, enable_tile_label, tile_ratio, image_value_range)
+    #
+    # loss_batch_e = e_model.train_on_batch([batch_img, batch_age_conv], batch_latant_center)
+    # ****************************** reconsider the complexity of algorithm ********************************
+
+
+
     # second edition: (G_model center)
-    # 1、(random?) images to latant space
-    # 2、latant array to calculate a center
-    # 3、use G_model to generate target_img (source = latant)
-    # 4、loss_G is self.G_model.train on mean_squared_error
+    # 1 (random) images to latant space
+    # 2 latant array to calculate a center
+    # 3 use G_model to generate target_img (source = latant)
+    # 4 loss_G is self.G_model.train on mean_squared_error
 
     # images_age_label_identity_list = \
     #     load_celebrity_image('./data/mat/', 'celebrityImageData.mat', num_pick_image, isRandom)
@@ -52,10 +70,10 @@ def train_E_model(e_model, size_age, file_names,
     #     end_time = time.time()
 
     # third edition: (EG_model center)
-    # 1、(random?) images as source images
-    # 2、source images to calculate a center
-    # 3、use EG_model to generate target_img (source = latant)
-    # 4、loss_G is self.G_model.train on mean_squared_error
+    # 1 (random) images as source images
+    # 2 source images to calculate a center
+    # 3 use EG_model to generate target_img (source = latant)
+    # 4 loss_G is self.G_model.train on mean_squared_error
 
     # images_age_label_identity_list = \
     #     load_celebrity_image('./data/mat/', 'celebrityImageData.mat', num_pick_image, isRandom)
@@ -77,33 +95,83 @@ def train_E_model(e_model, size_age, file_names,
     return e_model, batch_latant, loss_batch_e
 
 
-def generate_latent_center(images_age_label_identity_list, E_model,
-                           size_age, dataset_name, enable_tile_label, tile_ratio, image_value_range):
-    center=[]
-    target=[]
-    img = []
-    age = []
-    file_path = os.path.join('./data/', dataset_name)
-    for i in range(len(images_age_label_identity_list)):
-        list_part = images_age_label_identity_list[i]
-        list_image = []
-        age_label = np.zeros(shape=(len(list_part), size_age), dtype=np.float)
-        for j in range(len(list_part)):
-            ciInfo = list_part[j]
-            image_name = str(file_path) + '/' + ciInfo.name
-            image_age_label = int(ciInfo.age_label)
-            list_image.append(load_image(image_name).tolist())
-            age_label[j, image_age_label] = image_value_range[-1]
+# def generate_latent_center(images_age_label_identity_list, E_model,
+#                            size_age, dataset_name, enable_tile_label, tile_ratio, image_value_range):
+#     center=[]
+#     target=[]
+#     img = []
+#     age = []
+#     file_path = os.path.join('./data/', dataset_name)
+#     for i in range(len(images_age_label_identity_list)):
+#         list_part = images_age_label_identity_list[i]
+#         list_image = []
+#         age_label = np.zeros(shape=(len(list_part), size_age), dtype=np.float)
+#         for j in range(len(list_part)):
+#             ciInfo = list_part[j]
+#             image_name = str(file_path) + '/' + ciInfo.name
+#             image_age_label = int(ciInfo.age_label)
+#             list_image.append(load_image(image_name).tolist())
+#             age_label[j, image_age_label] = image_value_range[-1]
+#
+#         age_label = concat_label(age_label, enable_tile_label, tile_ratio)
+#         age_label_conv = np.reshape(age_label, [len(list_part), 1, 1, age_label.shape[-1]])
+#         array_target = E_model.predict([np.array(list_image), age_label_conv], verbose=0)
+#         array_center = copy_array(np.average(array_target, axis=0), len(array_target))
+#
+#         for i in range(len(array_target)):
+#             target.append(array_target[i].tolist())
+#             center.append(array_center[i].tolist())
+#             img.append(list_image[i])
+#             age.append(age_label_conv[i])
+#         #center.append(self.get_array_center(array_latant).tolist())
+#     return [np.array(img), np.array(age), np.array(target), np.array(center)]
 
+def generate_latant_z(E_model, real_images, real_label_age):
+    real_label_age_conv = np.reshape(real_label_age, [len(real_label_age), 1, 1, real_label_age.shape[-1]])
+    return E_model, E_model.predict([np.array(real_images), real_label_age_conv], verbose=0)
+
+
+def generate_latent_center(E_model, real_images, file_names, size_age,
+                           dataset_name, enable_tile_label, tile_ratio):
+    center = []
+    target = []
+    images = []
+    age_names = []
+    for i in range(len(file_names)):
+        file_name = file_names[i]
+        if dataset_name == 'UTKFace':
+            age = int(str(file_names[i]).split('/')[-1].split('_')[0].split('/')[-1])
+        elif dataset_name == 'CACD':
+            age = int(str(file_names[i]).split('\\')[-1].split('_')[0])
+        age = age_group_label(age)
+        name = file_name[file_name.index('_')+1: file_name.index('_00')]
+        age_name = str(age) + '_' + name
+
+        try:
+            index = age_names.index(age_name)
+            images[index].append(real_images[i])
+        except:
+            age_names.append(age_name)
+            images.append([real_images[i]])
+
+    for i in range(len(age_names)):
+        num = len(images[i])
+        # age_label_conv
+        age = int(age_names[i].split('_')[0])
+        age_label = np.zeros((num, size_age))
+        age_label[:, age] = 1
         age_label = concat_label(age_label, enable_tile_label, tile_ratio)
-        age_label_conv = np.reshape(age_label, [len(list_part), 1, 1, age_label.shape[-1]])
-        array_target = E_model.predict([np.array(list_image), age_label_conv], verbose=0)
-        array_center = copy_array(np.average(array_target, axis=0), len(array_target))
+        age_label_conv = np.reshape(age_label, [num, 1, 1, age_label.shape[-1]])
 
-        for i in range(len(array_target)):
-            target.append(array_target[i].tolist())
-            center.append(array_center[i].tolist())
-            img.append(list_image[i])
-            age.append(age_label_conv[i])
-        #center.append(self.get_array_center(array_latant).tolist())
-    return [np.array(img), np.array(age), np.array(target), np.array(center)]
+        # center
+        t = E_model.predict([np.array(images[i]), age_label_conv], verbose=0)
+        c = copy_array(np.average(t, axis=0), num)
+
+        # center + target
+        for index in range(len(c)):
+            center.append(c[index].tolist())
+            target.append(t[index].tolist())
+
+    return E_model, np.array(target), np.array(center)
+
+

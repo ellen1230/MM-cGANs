@@ -94,14 +94,15 @@ def load_weights(save_dir):
     #return [e_model, G_model, D_z_model, D_img_model, EG_model, dcgan_model]
 
 def save_weights(save_dir, E_model, G_model, D_z_model, D_img_model, epoch, batch):
-    print("\n\tsaving pre-trained model ...")
+    print("\n\tsaving trained model_e", epoch, " ...")
     E_model.save(filepath=save_dir +"/E_" + str(epoch) + 'b' + str(batch) + ".h5", overwrite=True)
-    D_z_model.save(filepath=save_dir +"/D_z_" + str(epoch) + 'b' + str(batch) + ".h5", overwrite=True)
+    # D_z_model.save(filepath=save_dir +"/D_z_" + str(epoch) + 'b' + str(batch) + ".h5", overwrite=True)
     D_img_model.save(filepath=save_dir +"/D_img_" + str(epoch) + 'b' + str(batch) + ".h5", overwrite=True)
     G_model.save(filepath=save_dir + "/G_" + str(epoch) + 'b' + str(batch) + ".h5", overwrite=True)
     return "SUCCESS!"
 
 def save_image(images, size_image, image_value_range, num_input_channels, epoch, batch, mode, image_path):
+    print("\n\tsaving generated images_e", epoch, " ...")
     num_images = len(images)
     num_picture = int(np.sqrt(num_images))
     picture = np.zeros([size_image*num_picture, size_image*num_picture, num_input_channels])

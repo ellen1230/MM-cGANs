@@ -20,10 +20,7 @@ class CelebrityInfo:
         self.rank = rank
         self.lfw = lfw
 
-class Images_by_AgeLabel_Name:
+class Sort_by_AgeLabel_Name:
     def __init__(self, age_label, name):
         self.age_label = age_label
         self.name = name
-        self.dirs = []
-
-
