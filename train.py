@@ -154,6 +154,7 @@ def generate_latent_center(E_model, real_images, file_names, size_age,
             age_names.append(age_name)
             images.append([real_images[i]])
 
+    # shorten the inner distance
     for i in range(len(age_names)):
         num = len(images[i])
         # age_label_conv
@@ -163,14 +164,42 @@ def generate_latent_center(E_model, real_images, file_names, size_age,
         age_label = concat_label(age_label, enable_tile_label, tile_ratio)
         age_label_conv = np.reshape(age_label, [num, 1, 1, age_label.shape[-1]])
 
-        # center
+        # inner z center
         t = E_model.predict([np.array(images[i]), age_label_conv], verbose=0)
         c = copy_array(np.average(t, axis=0), num)
 
-        # center + target
+        # inner center + target
         for index in range(len(c)):
             center.append(c[index].tolist())
             target.append(t[index].tolist())
+
+    # largen the inter distance
+    for i in range(len(age_names)):
+        age = age_names[i].split('_')[0]
+        name = age_names[i].split('_')[-1]
+        current_age_names = age_names[0:i] + age_names[i+1:len(age_names)]
+        for j in range(current_age_names):
+            current_age = current_age_names[j].split('_')[0]
+            current_name = current_age_names[j].split('_')[-1]
+            if (current_age != age) and (current_name == name):
+                index = age_names.index(str(current_age+'_'+current_name))
+
+                num = len(images[index])
+                # age_label_conv
+                age = int(age_names[index].split('_')[0])
+                age_label = np.zeros((num, size_age))
+                age_label[:, age] = 1
+                age_label = concat_label(age_label, enable_tile_label, tile_ratio)
+                age_label_conv = np.reshape(age_label, [num, 1, 1, age_label.shape[-1]])
+
+                # inter z center
+                t = E_model.predict([np.array(images[index]), age_label_conv], verbose=0)
+                c = copy_array(-np.average(t, axis=0), num)
+
+                # inner center + target
+                for index in range(len(c)):
+                    center.append(c[index].tolist())
+                    target.append(t[index].tolist())
 
     return E_model, np.array(target), np.array(center)
 
