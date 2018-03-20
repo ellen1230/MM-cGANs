@@ -264,6 +264,7 @@ class FaceAging(object):
 
                     # ********************** training E_model to generate latant z *********************
                     start_time = time.time()
+
                     # ********************* 1 no shorten inner distance & largen inter distance *************************
 
 
