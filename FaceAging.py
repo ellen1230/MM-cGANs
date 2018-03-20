@@ -8,8 +8,6 @@ from glob import glob
 import os
 import numpy as np
 import time
-import tensorflow as tf
-import DataClass
 
 class FaceAging(object):
     def __init__(self,
@@ -272,7 +270,7 @@ class FaceAging(object):
                     # ********************* 2 shorten inner distance & largen inter distance *************************
                     # self.E_model, batch_image_for_center, batch_age_conv_for_center, batch_latent_center = \
                     #     generate_latent_center(self.E_model, batch_real_images, batch_files_name,
-                    #                        self.size_age, self.dataset_name, self.enable_tile_label, self.tile_ratio)
+                    #                            self.size_age, self.dataset_name, self.enable_tile_label, self.tile_ratio)
                     # loss_E.append(self.E_model.train_on_batch([batch_image_for_center, batch_age_conv_for_center], batch_latent_center))
                     # print('loss_E on b_', index_batch, ' e_', epoch, ' is ', loss_E[-1])
 
@@ -313,7 +311,7 @@ class FaceAging(object):
                     self.D_img_model.trainable = True
 
                     end_time = time.time()
-                    print('GD_model time: ', str((end_time - start_time) / 60))
+                    print('EGD_model time: ', str((end_time - start_time) / 60))
 
                     # ************************ save images && model *******************************************
                     if (epoch % 20 == 0) or (epoch == 1):
