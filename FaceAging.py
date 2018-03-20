@@ -283,6 +283,7 @@ class FaceAging(object):
                     # ********************** fake batch images and labels **********************
 
                     # noise = np.random.uniform(self.image_value_range[0], self.image_value_range[1], size=(size_batch, self.size_z))
+                    self.E_model, batch_z = generate_latant_z(self.E_model, batch_real_images, batch_real_label_age)
                     batch_fake_image = self.G_model.predict([batch_z, batch_real_label_age], verbose=0)
 
                     start_time = time.time()
