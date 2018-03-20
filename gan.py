@@ -1,14 +1,17 @@
 from keras.layers import Input, Concatenate, Dense, Reshape
 from keras.models import Model
 
-def egdModel(EG, discriminator, size_image, size_age_label, num_input_channels):
-    # label of age&gender + EG model ---> generated image
-    input_images_EG = Input(shape=(size_image, size_image, num_input_channels))
+def egdModel(E, G, discriminator, size_image, size_age_label, num_input_channels):
+    # label of age&gender + E model + G model ---> generated image
+    input_images = Input(shape=(size_image, size_image, num_input_channels))
     input_ages_conv = Input(shape=(1, 1, size_age_label))
+    input_ages = Reshape(target_shape=(size_age_label, ))(input_ages_conv)
 
-    x = EG([input_images_EG, input_ages_conv])
-    output_dcgan = discriminator([x, input_ages_conv])
-    return Model(inputs=[input_images_EG, input_ages_conv], outputs=output_dcgan)
+    z = E([input_images, input_ages_conv])
+    generated_image = G([z, input_ages])
+    discriminator.trainable = False
+    output = discriminator([generated_image, input_ages_conv])
+    return Model(inputs=[input_images, input_ages_conv], outputs=output)
 
     # input_labels = Input(shape=(size_age_label,))
     # input_images_EG = Input(shape=(size_image, size_image, num_input_channels))

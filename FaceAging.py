@@ -33,7 +33,7 @@ class FaceAging(object):
                  size_age=10,  # number of categories (age segments) in the training dataset
 
                  enable_tile_label=True,  # enable to tile the label
-                 tile_ratio=2.0,  # ratio of the length between tiled label and z
+                 tile_ratio=1.0,  # ratio of the length between tiled label and z
                  is_training=True,  # flag for training or testing mode
                  save_dir='./save',  # path to save checkpoints, samples, and summary
                  dataset_name='CACD',  # name of the dataset in the folder ./data
@@ -104,20 +104,20 @@ class FaceAging(object):
             num_Dimg_fc_channels=self.num_Dimg_fc_channels
         )
 
-        # # E + G Model
-        # self.EG_model = gan.egModel(
-        #     self.E_model, self.G_model,
-        #     self.size_image, self.size_age_label, self.num_input_channels)
-        #
+        # E + G Model
+        self.EG_model = gan.egModel(
+            self.E_model, self.G_model,
+            self.size_image, self.size_age_label, self.num_input_channels)
+
         # G + D_img Model
-        self.GD_model = gan.gdModel(
-            self.G_model, self.D_img_model,
-            self.size_z, self.size_age_label)
+        # self.GD_model = gan.gdModel(
+        #     self.G_model, self.D_img_model,
+        #     self.size_z, self.size_age_label)
 
         # E + G + Dimg Model
-        # self.EGD_model = gan.egdModel(
-        #     self.EG_model, self.D_img_model,
-        #     self.size_image, self.size_age_label, self.num_input_channels)
+        self.EGD_model = gan.egdModel(
+            self.E_model, self.G_model, self.D_img_model,
+            self.size_image, self.size_age_label, self.num_input_channels)
 
         # ************************************* optimizer *******************************************
         adam_e = Adam(lr=0.0002, beta_1=0.5)
@@ -133,11 +133,11 @@ class FaceAging(object):
         # loss model of encoder + generator
         self.E_model.compile(optimizer=adam_e, loss='mean_squared_error') # mean squared error
         self.G_model.compile(optimizer=adam_G, loss='mean_squared_error')
-        # self.EG_model.compile(optimizer=adam_EG, loss='mean_squared_error')
+        self.EG_model.compile(optimizer=adam_EG, loss='mean_squared_error')
 
         # loss model of discriminator on generated image
-        self.GD_model.compile(optimizer=adam_GD, loss='binary_crossentropy')
-        # self.EGD_model.compile(optimizer=adam_EGD, loss='binary_crossentropy')
+        # self.GD_model.compile(optimizer=adam_GD, loss='binary_crossentropy')
+        self.EGD_model.compile(optimizer=adam_EGD, loss='binary_crossentropy')
         # loss model of discriminator on generated + real image
         self.D_img_model.trainable = True
         self.D_img_model.compile(optimizer=adam_D_img, loss='binary_crossentropy')
@@ -221,7 +221,7 @@ class FaceAging(object):
 
             # *************************** preparing data for epoch iteration *************************************
             num_batches = len(file_names) // size_batch
-            loss_E, loss_Dimg, loss_GD1, loss_GD2 = [], [], [], []
+            loss_E, loss_Dimg, loss_EGD1, loss_EGD2 = [], [], [], []
             for epoch in range(num_epochs):
                 if enable_shuffle:
                     np.random.shuffle(file_names)
@@ -267,15 +267,15 @@ class FaceAging(object):
                     # ********************** training E_model to generate latant z *********************
                     start_time = time.time()
                     # ********************* 1 no shorten inner distance & largen inter distance *************************
-                    # self.E_model, batch_z = generate_latant_z(self.E_model, batch_real_images, batch_real_label_age)
+
 
                     # ********************* 2 shorten inner distance & largen inter distance *************************
-                    self.E_model, batch_image_for_center, batch_age_conv_for_center, batch_latent_center = \
-                        generate_latent_center(self.E_model, batch_real_images, batch_files_name,
-                                           self.size_age, self.dataset_name, self.enable_tile_label, self.tile_ratio)
-                    loss_E_batch = self.E_model.train_on_batch([batch_image_for_center, batch_age_conv_for_center], batch_latent_center)
+                    # self.E_model, batch_image_for_center, batch_age_conv_for_center, batch_latent_center = \
+                    #     generate_latent_center(self.E_model, batch_real_images, batch_files_name,
+                    #                        self.size_age, self.dataset_name, self.enable_tile_label, self.tile_ratio)
+                    # loss_E.append(self.E_model.train_on_batch([batch_image_for_center, batch_age_conv_for_center], batch_latent_center))
+                    # print('loss_E on b_', index_batch, ' e_', epoch, ' is ', loss_E[-1])
 
-                    loss_E.append(loss_E_batch)
                     end_time = time.time()
                     print('E_model time: ', (end_time-start_time)/60)
 
@@ -283,10 +283,9 @@ class FaceAging(object):
                     # ********************** fake batch images and labels **********************
 
                     # noise = np.random.uniform(self.image_value_range[0], self.image_value_range[1], size=(size_batch, self.size_z))
-                    self.E_model, batch_z = generate_latant_z(self.E_model, batch_real_images, batch_real_label_age)
-                    batch_fake_image = self.G_model.predict([batch_z, batch_real_label_age], verbose=0)
 
-                    start_time = time.time()
+                    batch_fake_image = self.EG_model.predict([batch_real_images, batch_real_label_age_conv])
+
                     # ********************** training GD model ***************************
                     # ********************** training the model discriminator_img ***************************
                     start_time = time.time()
@@ -307,10 +306,10 @@ class FaceAging(object):
                     # ************************** training the model generator + discriminator_img ***********************************
                     # train Dimg once and GD twice
                     self.D_img_model.trainable = False
-                    loss_GD1.append(self.GD_model.train_on_batch([batch_z, batch_real_label_age], np.ones(size_batch)))
-                    loss_GD2.append(self.GD_model.train_on_batch([batch_z, batch_real_label_age], np.ones(size_batch)))
-                    print('loss_GD1 on b_', index_batch, ' e_', epoch, ' is ', loss_GD1[-1])
-                    print('loss_GD2 on b_', index_batch, ' e_', epoch, ' is ', loss_GD2[-1])
+                    loss_EGD1.append(self.EGD_model.train_on_batch([batch_real_images, batch_real_label_age_conv], np.ones(size_batch)))
+                    loss_EGD2.append(self.EGD_model.train_on_batch([batch_real_images, batch_real_label_age_conv], np.ones(size_batch)))
+                    print('loss_EGD1 on b_', index_batch, ' e_', epoch, ' is ', loss_EGD1[-1])
+                    print('loss_EGD2 on b_', index_batch, ' e_', epoch, ' is ', loss_EGD2[-1])
                     self.D_img_model.trainable = True
 
                     end_time = time.time()
@@ -318,18 +317,14 @@ class FaceAging(object):
 
                     # ************************ save images && model *******************************************
                     if (epoch % 20 == 0) or (epoch == 1):
-                        batch_real_label_age_conv = np.reshape(batch_real_label_age,
-                                                               [len(batch_real_label_age), 1, 1, batch_real_label_age.shape[-1]])
-                        latant_z = self.E_model.predict([batch_real_images, batch_real_label_age_conv])
-                        batch_fake_image2 = self.G_model.predict([latant_z, batch_real_label_age])
+                        batch_fake_image2 = self.EG_model.predict([batch_real_images, batch_real_label_age_conv])
                         save_image(batch_fake_image2, self.size_image,
                                    self.image_value_range, self.num_input_channels, epoch, index_batch, self.image_mode,
                                    self.save_dir+'/image')
                         # save_weights(self.save_dir+'/weight/', self.E_model,
                         #              self.G_model,self.D_z_model, self.D_img_model, epoch, index_batch)
-                        save_weights(self.save_dir + '/weight', self.E_model,
-                                     self.G_model, None, self.D_img_model, epoch, index_batch)
-                        save_loss(self.save_dir+'/metric', loss_E, loss_Dimg, loss_GD1, loss_GD2)
+                        save_weights(self.save_dir + '/weight', self.EGD_model, None,  epoch, index_batch)
+                        save_loss(self.save_dir+'/metric', loss_E, loss_Dimg, loss_EGD1, loss_EGD2)
 
 
     # def generate_fake_image(self, size_batch):
