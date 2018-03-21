@@ -3,7 +3,6 @@ from ops import load_image, age_group_label, duplicate, load_weights, \
 import os
 import numpy as np
 import time
-from DataClass import Sort_by_AgeLabel_Name
 
 def train_E_model(e_model, size_age, file_names,
                   dataset_name, enable_tile_label, tile_ratio, image_value_range):
