@@ -33,6 +33,7 @@ def generator_model(size_z, size_age_label, size_mini_map, size_kernel, size_gen
 
     # deconv layers with stride 2
     num_layers = len(num_gen_channels)
+    size_image = size_mini_map
     for i in range(num_layers):
         name = 'G_deconv' + str(i)
         current = Conv2DTranspose(
@@ -43,9 +44,9 @@ def generator_model(size_z, size_age_label, size_mini_map, size_kernel, size_gen
             kernel_initializer=kernel_initializer,
             bias_initializer=bias_initializer,
             name=name)(current)
-        # size_image = size_mini_map * 2
-        # current = Lambda(tf.contrib.layers.batch_norm, output_shape=(size_image, size_image, int(current.shape[3])),
-        #                  arguments={'decay':0.9, 'epsilon': 1e-5, 'scale':True})(current)
+        size_image = size_image * 2
+        current = Lambda(tf.contrib.layers.batch_norm, output_shape=(size_image, size_image, int(current.shape[3])),
+                         arguments={'decay':0.9, 'epsilon': 1e-5, 'scale':True})(current)
         current = Activation(activation='relu')(current)
 
     # deconv layers of 128*128*3
