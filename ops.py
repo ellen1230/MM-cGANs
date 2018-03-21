@@ -11,7 +11,7 @@ import random
 
 def load_image(
         image_path,  # path of a image
-        image_size=128,  # expected size of the image
+        image_size,  # expected size of the image
         image_value_range=(-1, 1),  # expected pixel value range of the image
         is_gray=False,  # gray scale or color image
         ):
@@ -19,6 +19,7 @@ def load_image(
         image = imread(image_path, flatten=True).astype(np.float32)
     else:
         image = imread(image_path).astype(np.float32)
+        # image = np.array(Image.open(image_path).resize((image_size, image_size)))
     image = imresize(image, [image_size, image_size])
     image = image.astype(np.float32) * (image_value_range[-1] - image_value_range[0]) / 255.0 + image_value_range[0]
     return image
@@ -102,24 +103,41 @@ def save_weights(save_dir, EGD_model, Dz_model, epoch, batch):
 def save_image(images, size_image, image_value_range, num_input_channels, epoch, batch, mode, image_path):
     print("\n\tsaving generated images_e", epoch, " ...")
     num_images = len(images)
-    num_picture = int(np.sqrt(num_images))
-    picture = np.zeros([size_image*num_picture, size_image*num_picture, num_input_channels])
+    if num_images < 16:
+        num_picture = int(np.sqrt(num_images))
+        picture = np.zeros([size_image * num_picture, size_image * num_picture, num_input_channels])
 
-    for i in range(num_picture):
-        for j in range(num_picture):
-            index = i * num_picture + j
-            picture[i * size_image:(i + 1) * size_image, j * size_image:(j + 1) * size_image] = images[index]
+        for i in range(num_picture):
+            for j in range(num_picture):
+                index = i * num_picture + j
+                picture[i * size_image:(i + 1) * size_image, j * size_image:(j + 1) * size_image] = images[index]
+    else:
+        num_picture = 4
+        picture = np.zeros([size_image * num_picture, size_image * num_picture, num_input_channels])
+
+        for i in range(num_picture):
+            for j in range(num_picture):
+                index = i * num_picture + j
+                picture[i * size_image:(i + 1) * size_image, j * size_image:(j + 1) * size_image] = images[index]
+
+
+
 
     # image = images[0].reshape(28, 28)
     # for i in range(1, images.shape[0]):
     #     image = np.append(image, images[i].reshape(28, 28), axis=1)
 
-    picture = \
-        (picture.astype(np.float32) - image_value_range[0])* 255.0 / (image_value_range[-1] - image_value_range[0])
+    # picture = \
+    #     (picture.astype(np.float32) - image_value_range[0])* 255.0 / (image_value_range[-1] - image_value_range[0])
+        # picture= picture * 127.5 + 127.5
+    # picture = Image.fromarray(picture, mode=mode)
+    # picture.save(str(image_path) + "/e" + str(epoch) + 'b' + str(batch) + ".jpg")
 
-    #picture= picture * 127.5 + 127.5
-    picture = Image.fromarray(picture, mode=mode)
-    picture.save(str(image_path) + "/e" + str(epoch) + 'b' + str(batch) + ".jpg")
+    picture = ((picture + 1)/2 * 255.0).astype(np.uint8)
+    path = str(image_path)  + "/e" + str(epoch) + 'b' + str(batch) + ".jpg"
+    imsave(path, picture)
+
+
 
 def save_loss(save_dir, loss_E, loss_Dimg, loss_GD1, loss_GD2):
 

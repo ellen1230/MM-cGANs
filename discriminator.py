@@ -43,8 +43,23 @@ def discriminator_img_model(size_image, size_kernel, size_age_label, num_input_c
                                    arguments={'times': size_image})(input_ages_conv) #(128, 128, 10*tile_ratio)
     # concatenate
     current = Concatenate(axis=-1)([input_images, input_ages_conv_repeat])
-
+    
     num_layers = len(num_Dimg_channels)
+
+    # name = 'D_img_conv0'
+    # current = Conv2D(
+    #     filters=num_Dimg_channels[0],
+    #     kernel_size=(size_kernel, size_kernel),
+    #     strides=(2, 2),
+    #     padding='same',
+    #     kernel_initializer=kernel_initializer,
+    #     bias_initializer=bias_initializer,
+    #     name=name)(current)
+    # size_image = int(size_image / 2)
+    # current = Lambda(tf.contrib.layers.batch_norm, output_shape=(size_image, size_image, int(current.shape[3])),
+    #                  arguments={'decay':0.9, 'epsilon': 1e-5, 'scale':True})(current)
+    # current = Lambda(lrelu, output_shape=(size_image, size_image, int(current.shape[3])))(current)
+
     # conv layers with stride 2
     for i in range(num_layers):
         name = 'D_img_conv' + str(i)
@@ -57,11 +72,15 @@ def discriminator_img_model(size_image, size_kernel, size_age_label, num_input_c
             bias_initializer=bias_initializer,
             name=name)(current)
         size_image = int(size_image / 2)
+
         # current = Lambda(tf.contrib.layers.batch_norm, output_shape=(size_image, size_image, int(current.shape[3])),
         #                  arguments={'decay':0.9, 'epsilon': 1e-5, 'scale':True})(current)
         current = Lambda(lrelu, output_shape=(size_image, size_image, int(current.shape[3])))(current)
 
-    current = Flatten()(current)
+
+    # current = Flatten()(current)
+    current = Reshape(target_shape=(size_image * size_image * int(current.shape[3]),))(current)
+
 
     # fully connection layer
     kernel_initializer = initializers.random_normal(stddev=0.02)
@@ -80,6 +99,7 @@ def discriminator_img_model(size_image, size_kernel, size_age_label, num_input_c
         kernel_initializer=kernel_initializer,
         bias_initializer=bias_initializer,
         name=name)(current)
+
 
     # output
     return Model(inputs=[input_images, input_ages_conv], outputs=current)

@@ -3,7 +3,6 @@ from ops import load_image, age_group_label, duplicate, load_weights, \
 import os
 import numpy as np
 import time
-from DataClass import Sort_by_AgeLabel_Name
 
 def train_E_model(e_model, size_age, file_names,
                   dataset_name, enable_tile_label, tile_ratio, image_value_range):
@@ -141,9 +140,9 @@ def generate_latent_center(E_model, real_images, file_names, size_age,
     for i in range(len(file_names)):
         file_name = file_names[i]
         if dataset_name == 'UTKFace':
-            age = int(str(file_names[i]).split('/')[-1].split('_')[0].split('/')[-1])
+            age = int(str(file_names[i]).split('\\')[-1].split('_')[0].split('\\')[-1])
         elif dataset_name == 'CACD':
-            age = int(str(file_names[i]).split('\\')[-1].split('_')[0])
+            age = int(str(file_names[i]).split('/')[-1].split('_')[0])
         age = age_group_label(age)
         name = file_name[file_name.index('_')+1: file_name.index('_00')]
         age_name = str(age) + '_' + name

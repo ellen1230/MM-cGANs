@@ -34,6 +34,8 @@ def encoder_model(size_image, size_age_label, num_input_channels, size_kernel, s
 
     # E_conv layer + Batch Normalization
     num_layers = len(num_encoder_channels)
+
+
     for i in range(num_layers):
         name = 'E_conv' + str(i)
         current = Conv2D(
@@ -48,6 +50,7 @@ def encoder_model(size_image, size_age_label, num_input_channels, size_kernel, s
         current = Lambda(lrelu, output_shape=(size_image, size_image, int(current.shape[3])))(current)
         # current = Lambda(tf.contrib.layers.batch_norm, output_shape=(size_image, size_image, int(current.shape[3])),
         #                  arguments={'decay':0.9, 'epsilon': 1e-5, 'scale':True})(current)
+
 
     # reshape
     current = Flatten()(current)
