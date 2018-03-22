@@ -3,7 +3,7 @@ import tensorflow as tf
 
 flags = tf.app.flags
 flags.DEFINE_integer(flag_name='epoch', default_value=200, docstring='number of epochs')
-flags.DEFINE_integer(flag_name='size_image', default_value=64, docstring='size of an image')
+flags.DEFINE_integer(flag_name='size_image', default_value=5, docstring='size of an image')
 flags.DEFINE_string(flag_name='size_batch', default_value=10, docstring='size of one batch')
 flags.DEFINE_boolean(flag_name='is_train', default_value=True, docstring='training mode')
 flags.DEFINE_string(flag_name='path_data', default_value='./data', docstring='upper dir of dataset')

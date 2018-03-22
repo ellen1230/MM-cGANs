@@ -16,7 +16,7 @@ import tensorflow as tf
 #     return Model(inputs=inputs, outputs=outputs)
 
 # add the label of age + gender to input layer to align the structure of discriminator_img
-def encoder_model(size_image, size_age_label, num_input_channels, size_kernel, size_z, num_encoder_channels):
+def encoder_model(size_image, size_age_label, size_name_label, size_gender_label, num_input_channels, size_kernel, size_z, num_encoder_channels):
     # map the label of age + gender to size (size_image)
 
     kernel_initializer = initializers.truncated_normal(stddev=0.02)
@@ -30,7 +30,14 @@ def encoder_model(size_image, size_age_label, num_input_channels, size_kernel, s
     input_ages_conv_repeat = Lambda(duplicate_conv, output_shape=(size_image, size_image, size_age_label),
                                    arguments={'times': size_image})(input_ages_conv) #(128, 128, 10*tile_ratio)
 
-    current = Concatenate(axis=-1)([input_images, input_ages_conv_repeat])
+    input_names_conv = Input(shape=(1, 1, size_name_label))
+    input_names_conv_repeat = Lambda(duplicate_conv, output_shape=(size_image, size_image, size_name_label),
+                                    arguments={'times': size_image})(input_names_conv)
+    input_genders_conv = Input(shape=(1, 1, size_gender_label))
+    input_genders_conv_repeat = Lambda(duplicate_conv, output_shape=(size_image, size_image, size_gender_label),
+                                     arguments={'times': size_image})(input_genders_conv)
+
+    current = Concatenate(axis=-1)([input_images, input_ages_conv_repeat, input_names_conv_repeat, input_genders_conv_repeat])
 
     # E_conv layer + Batch Normalization
     num_layers = len(num_encoder_channels)
@@ -62,4 +69,4 @@ def encoder_model(size_image, size_age_label, num_input_channels, size_kernel, s
                     kernel_initializer=kernel_initializer, bias_initializer=bias_initializer, name= name)(current)
 
     # output
-    return Model(inputs=[input_images, input_ages_conv], outputs=current)
+    return Model(inputs=[input_images, input_ages_conv, input_names_conv,input_genders_conv], outputs=current)

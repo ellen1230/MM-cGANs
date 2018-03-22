@@ -1,7 +1,7 @@
 import encoder, generator, gan, discriminator
 from train import train_E_model, generate_latant_z, generate_latent_center
 from ops import load_image, age_group_label, duplicate, load_weights, \
-    concat_label, save_image, save_weights, load_celebrity_image, save_loss, copy_array
+    concat_label, save_image, save_weights, load_celebrity_image, save_loss, copy_array, name_gender_label
 from keras.optimizers import SGD, Adam
 from keras.models import load_model
 from glob import glob
@@ -32,6 +32,8 @@ class FaceAging(object):
 
 
                  size_age=10,  # number of categories (age segments) in the training dataset
+                 size_name=60, # number of dataset'name
+                 size_gender=2, # male & female
 
                  enable_tile_label=True,  # enable to tile the label
                  tile_ratio=1.0,  # ratio of the length between tiled label and z
@@ -50,6 +52,8 @@ class FaceAging(object):
         self.num_Dimg_channels = num_Dimg_channels
         self.num_Dimg_fc_channels = num_Dimg_fc_channels
         self.size_age = size_age
+        self.size_name = size_name
+        self.size_gender = size_gender
         self.size_gen = size_gen
         self.num_gen_channels = num_gen_channels
         self.enable_tile_label = enable_tile_label
@@ -71,6 +75,8 @@ class FaceAging(object):
         self.E_model = encoder.encoder_model(
             size_image=self.size_image,
             size_age_label=self.size_age_label,
+            size_name_label=self.size_name,
+            size_gender_label=self.size_gender,
             num_input_channels=self.num_input_channels,
             size_kernel=self.size_kernel,
             size_z=self.size_z,
@@ -82,6 +88,8 @@ class FaceAging(object):
         self.G_model = generator.generator_model(
             size_z=self.size_z,
             size_age_label=self.size_age_label,
+            size_name_label=self.size_name,
+            size_gender_label=self.size_gender,
             size_mini_map=int(self.size_image / 2 ** num_layers),
             size_kernel=self.size_kernel,
             size_gen=self.size_gen,
@@ -100,6 +108,8 @@ class FaceAging(object):
             size_image=self.size_image,
             size_kernel=self.size_kernel,
             size_age_label=self.size_age_label,
+            size_name_label=self.size_name,
+            size_gender_label=self.size_gender,
             num_input_channels=self.num_input_channels,
             num_Dimg_channels=self.num_Dimg_channels,
             num_Dimg_fc_channels=self.num_Dimg_fc_channels
@@ -108,17 +118,18 @@ class FaceAging(object):
         # E + G Model
         self.EG_model = gan.egModel(
             self.E_model, self.G_model,
-            self.size_image, self.size_age_label, self.num_input_channels)
+            self.size_image, self.size_age_label,
+            self.size_name, self.size_gender, self.num_input_channels)
 
         # G + D_img Model
         self.GD_model = gan.gdModel(
             self.G_model, self.D_img_model,
-            self.size_z, self.size_age_label)
+            self.size_z, self.size_age_label, self.size_name, self.size_gender,)
 
         # E + G + Dimg Model
         self.EGD_model = gan.egdModel(
             self.E_model, self.G_model, self.D_img_model,
-            self.size_image, self.size_age_label, self.num_input_channels)
+            self.size_image, self.size_age_label, self.size_name, self.size_gender, self.num_input_channels)
 
         # ************************************* optimizer *******************************************
         # adam_e = Adam(lr=0.0002, beta_1=0.5)
@@ -199,19 +210,12 @@ class FaceAging(object):
         print('\n\tPreparing for training ...')
 
         # load model
-        # if use_trained_model:
-        #     path_weights = './weight'
-            # if os.path.exists(path_weights + '/Dz.h5') and \
-            #     os.path.exists(path_weights + '/Dimg.h5') and \
-            #     os.path.exists(path_weights + '/EG.h5') and \
-            #     os.path.exists(path_weights + '/dcgan.h5'):
-            #     [self.D_z_model, self.D_img_model, self.EG_model, self.dcgan_model] = load_weights(path_weights)
-            #     print("\tSUCCESS!")
+        if use_trained_model:
+            path_weights = self.save_dir + '/weight'
+            if os.path.exists(path_weights + '/EGD.h5') :
+                self.EGD_model = load_weights(path_weights)
+                print("\tSUCCESS!")
 
-
-        # # images list for shorten the distance of same age && name
-        # images_age_label_identity_list = \
-        #     load_celebrity_image(os.path.join(path_data, 'mat/'), 'celebrityImageData.mat', num_pick_image, False)
 
         # *************************** preparing data for epoch iteration *************************************
         num_batches = len(file_names) // size_batch
@@ -234,27 +238,72 @@ class FaceAging(object):
                     batch_real_images = np.array(batch).astype(np.float32)
 
                 # age label
-                batch_real_label_age = np.zeros(
-                    shape=(len(batch_files), self.size_age)
-                ) #* self.image_value_range[0]
-                # # gender label
-                # batch_label_gender = np.zeros(
-                #     shape=(len(batch_files), 2), dtype=np.float
-                # ) #* self.image_value_range[0]
+                batch_real_label_age = np.zeros(shape=(len(batch_files), self.size_age)) #* self.image_value_range[0]
+                # name label
+                batch_real_label_name = np.zeros(shape=(len(batch_files), self.size_name))  # * self.image_value_range[0]
+                # gender label
+                batch_real_label_gender = np.zeros(shape=(len(batch_files), self.size_gender))  # * self.image_value_range[0]
+
                 batch_files_name = []
                 for i, label in enumerate(batch_files):
                     if self.dataset_name == 'UTKFace':
+                        print('Use dataset CACD because the name feature')
                         age = int(str(batch_files[i]).split('\\')[-1].split('_')[0].split('\\')[-1])
                     elif self.dataset_name == 'CACD':
-                        age = int(str(batch_files[i]).split('/')[-1].split('_')[0])
+                        temp = str(batch_files[i]).split('/')[-1]
+                        age = int(temp.split('_')[0])
+                        name = temp[temp.index('_')+1: temp.index('00')-1]
                     age = age_group_label(age)
+                    [name, gender] = name_gender_label(name)
+
                     batch_real_label_age[i, age] = 1
+                    if int(self.size_name) >1 :
+                        batch_real_label_name[i, name] = 1
+                    else:
+                        batch_real_label_name[i] = name/self.size_name
+                    batch_real_label_gender[i, gender] = 1
                     batch_files_name.append(str(batch_files[i]).split('/')[-1])
                 # batch_real_label_age = concat_label(batch_real_label_age, self.enable_tile_label, self.tile_ratio)
-                batch_real_label_age_conv = np.reshape(batch_real_label_age,
-                                                       [len(batch_real_label_age), 1, 1, batch_real_label_age.shape[-1]])
+                batch_real_label_age_conv = np.reshape(batch_real_label_age, [len(batch_real_label_age), 1, 1, batch_real_label_age.shape[-1]])
+                batch_real_label_name_conv = np.reshape(batch_real_label_name, [len(batch_real_label_name), 1, 1, batch_real_label_name.shape[-1]])
+                batch_real_label_gender_conv = np.reshape(batch_real_label_gender, [len(batch_real_label_gender), 1, 1, batch_real_label_gender.shape[-1]])
                     # gender = int(str(batch_files[i]).split('/')[-1].split('_')[1])
                     # batch_label_gender[i, gender] = self.image_value_range[-1]
+
+                # *********************** random latant z to generate basic EGD model *************************
+
+                # noise = np.random.uniform(-1, 1, size=(size_batch, self.size_z))
+                # batch_fake_image = self.G_model.predict([noise, batch_real_label_age], verbose=0)
+                #
+                # # ********************** training GD model ***************************
+                # # ********************** training the model discriminator_img ***************************
+                # start_time = time.time()
+                # # using real image + label and generated fake image + label to train the discriminator_img
+                # # image
+                # train_batch_x = np.concatenate((batch_real_images, batch_fake_image), axis=0)
+                # # feature age
+                # train_batch_age = np.concatenate((batch_real_label_age, batch_real_label_age), axis=0)
+                # train_batch_age_conv = np.reshape(train_batch_age, [len(train_batch_age), 1, 1, train_batch_age.shape[-1]])
+                # # label
+                # train_batch_y = np.concatenate((np.ones(size_batch), np.zeros(size_batch)), axis=0)
+                #
+                # # train D_img
+                # loss_Dimg.append(self.D_img_model.train_on_batch([train_batch_x, train_batch_age_conv], train_batch_y))
+                #
+                # # print('loss_Dimg on b_' + str(index_batch) + ' e_' + str(epoch) + ' is ' + loss_batch_Dimg )
+                # print('loss_Dimg on b_', index_batch, ' e_', epoch, ' is ', loss_Dimg[-1])
+                # # ************************** training the model generator + discriminator_img ***********************************
+                # # train Dimg once and GD twice
+                # self.D_img_model.trainable = False
+                # loss_EGD1.append(self.GD_model.train_on_batch([noise, batch_real_label_age], np.ones(size_batch)))
+                # loss_EGD2.append(self.GD_model.train_on_batch([noise, batch_real_label_age], np.ones(size_batch)))
+                # print('loss_GD1 on b_', index_batch, ' e_', epoch, ' is ', loss_EGD1[-1])
+                # print('loss_GD2 on b_', index_batch, ' e_', epoch, ' is ', loss_EGD2[-1])
+                # self.D_img_model.trainable = True
+                #
+                # end_time = time.time()
+                # print('GD_model time: ', str((end_time - start_time) / 60))
+
 
                 # ********************** training E_model to generate latant z *********************
                 start_time = time.time()
@@ -272,46 +321,9 @@ class FaceAging(object):
                 print('E_model time: ', (end_time-start_time)/60)
 
 
-                # # ********************** fake batch images and labels **********************
-                #
-                # # noise = np.random.uniform(self.image_value_range[0], self.image_value_range[1], size=(size_batch, self.size_z))
-                #
-                # batch_fake_image = self.EG_model.predict([batch_real_images, batch_real_label_age_conv])
-                #
-                # # ********************** training GD model ***************************
-                # # ********************** training the model discriminator_img ***************************
-                # start_time = time.time()
-                # # using real image + label and generated fake image + label to train the discriminator_img
-                # # image
-                # train_batch_x = np.concatenate((batch_real_images, batch_fake_image), axis=0)
-                # # feature age
-                # train_batch_age = np.concatenate((batch_real_label_age, batch_real_label_age), axis=0)
-                # train_batch_age_conv = np.reshape(train_batch_age, [len(train_batch_age), 1, 1, train_batch_age.shape[-1]])
-                # # label
-                # train_batch_y = np.concatenate((np.ones(size_batch), np.zeros(size_batch)), axis=0)
-                #
-                # # train D_img
-                # loss_batch_Dimg = self.D_img_model.train_on_batch([train_batch_x, train_batch_age_conv], train_batch_y)
-                # loss_Dimg.append(loss_batch_Dimg)
-                # #print('loss_Dimg on b_' + str(index_batch) + ' e_' + str(epoch) + ' is ' + loss_batch_Dimg )
-                # print('loss_Dimg on b_', index_batch, ' e_', epoch, ' is ' , loss_batch_Dimg )
-                # # ************************** training the model generator + discriminator_img ***********************************
-                # # train Dimg once and GD twice
-                # self.D_img_model.trainable = False
-                # loss_EGD1.append(self.EGD_model.train_on_batch([batch_fake_image, batch_real_label_age_conv], np.ones(size_batch)))
-                # loss_EGD2.append(self.EGD_model.train_on_batch([batch_fake_image, batch_real_label_age_conv], np.ones(size_batch)))
-                # print('loss_EGD1 on b_', index_batch, ' e_', epoch, ' is ', loss_EGD1[-1])
-                # print('loss_EGD2 on b_', index_batch, ' e_', epoch, ' is ', loss_EGD2[-1])
-                # self.D_img_model.trainable = True
-                #
-                # end_time = time.time()
-                # print('EGD_model time: ', str((end_time - start_time) / 60))
-
                 # ********************** fake batch images and labels **********************
-
-                noise = np.random.uniform(-1, 1,
-                                          size=(size_batch, self.size_z))
-                batch_fake_image = self.G_model.predict([noise, batch_real_label_age], verbose=0)
+                batch_fake_image = self.EG_model.predict([batch_real_images, batch_real_label_age_conv,
+                                                          batch_real_label_name_conv, batch_real_label_gender_conv])
 
                 # ********************** training GD model ***************************
                 # ********************** training the model discriminator_img ***************************
@@ -321,39 +333,59 @@ class FaceAging(object):
                 train_batch_x = np.concatenate((batch_real_images, batch_fake_image), axis=0)
                 # feature age
                 train_batch_age = np.concatenate((batch_real_label_age, batch_real_label_age), axis=0)
-                train_batch_age_conv = np.reshape(train_batch_age,
-                                                  [len(train_batch_age), 1, 1, train_batch_age.shape[-1]])
+                train_batch_age_conv = np.reshape(train_batch_age, [len(train_batch_age), 1, 1, train_batch_age.shape[-1]])
+                # feature name
+                train_batch_name = np.concatenate((batch_real_label_name, batch_real_label_name), axis=0)
+                train_batch_name_conv = np.reshape(train_batch_name, [len(train_batch_name), 1, 1, train_batch_name.shape[-1]])
+                # feature gender
+                train_batch_gender = np.concatenate((batch_real_label_gender, batch_real_label_gender), axis=0)
+                train_batch_gender_conv = np.reshape(train_batch_gender, [len(train_batch_gender), 1, 1, train_batch_gender.shape[-1]])
                 # label
                 train_batch_y = np.concatenate((np.ones(size_batch), np.zeros(size_batch)), axis=0)
 
                 # train D_img
-                loss_Dimg.append(self.D_img_model.train_on_batch([train_batch_x, train_batch_age_conv], train_batch_y))
-
-                # print('loss_Dimg on b_' + str(index_batch) + ' e_' + str(epoch) + ' is ' + loss_batch_Dimg )
-                print('loss_Dimg on b_', index_batch, ' e_', epoch, ' is ', loss_Dimg[-1])
+                loss_Dimg.append(self.D_img_model.train_on_batch([train_batch_x, train_batch_age_conv, train_batch_name_conv, train_batch_gender_conv],
+                                                                 train_batch_y))
+                print('loss_Dimg on b_', index_batch, ' e_', epoch, ' is ' , loss_Dimg[-1] )
                 # ************************** training the model generator + discriminator_img ***********************************
                 # train Dimg once and GD twice
                 self.D_img_model.trainable = False
-                loss_EGD1.append(self.GD_model.train_on_batch([noise, batch_real_label_age], np.ones(size_batch)))
-                loss_EGD2.append(self.GD_model.train_on_batch([noise, batch_real_label_age], np.ones(size_batch)))
-                print('loss_GD1 on b_', index_batch, ' e_', epoch, ' is ', loss_EGD1[-1])
-                print('loss_GD2 on b_', index_batch, ' e_', epoch, ' is ', loss_EGD2[-1])
+                loss_EGD1.append(self.EGD_model.train_on_batch([batch_fake_image, batch_real_label_age_conv, train_batch_name_conv, train_batch_gender_conv],
+                                                               np.ones(size_batch)))
+                loss_EGD2.append(self.EGD_model.train_on_batch([batch_fake_image, batch_real_label_age_conv, train_batch_name_conv, train_batch_gender_conv],
+                                                               np.ones(size_batch)))
+                print('loss_EGD1 on b_', index_batch, ' e_', epoch, ' is ', loss_EGD1[-1])
+                print('loss_EGD2 on b_', index_batch, ' e_', epoch, ' is ', loss_EGD2[-1])
                 self.D_img_model.trainable = True
 
                 end_time = time.time()
-                print('GD_model time: ', str((end_time - start_time) / 60))
+                print('EGD_model time: ', str((end_time - start_time) / 60))
+
+
 
                 # ************************ save images && model *******************************************
                 if (epoch % 20 == 0) or (epoch == 1):
 
-                    noise = np.random.uniform(-1, 1, size=(size_batch, 100))
-                    noise_age = np.zeros((size_batch, 10))
-                    noise_age[:, 2] = 1
-                    noise_image = self.G_model.predict([noise, noise_age], verbose=0)
+                    # noise = np.random.uniform(-1, 1, size=(size_batch, 100))
+                    # noise_age = np.zeros((size_batch, 10))
+                    # noise_age[:, 2] = 1
+                    # noise_image = self.G_model.predict([noise, noise_age], verbose=0)
 
+                    fake_age = np.zeros((size_batch, self.size_age))
+                    fake_age[:, 2] = 1
+                    fake_age_conv = np.reshape(fake_age, [len(fake_age), 1, 1, fake_age.shape[-1]])
+                    fake_name = np.zeros((size_batch, self.size_name))
+                    if int(self.size_name) > 1 :
+                        fake_name[:, 0] = 1
+                    else:
+                        fake_name[:] = 1/self.size_name
+                    fake_name_conv = np.reshape(fake_name, [len(fake_name), 1, 1, fake_name.shape[-1]])
+                    fake_gender = np.zeros((size_batch, self.size_gender))
+                    fake_gender[:, 1] = 1
+                    fake_gender_conv = np.reshape(fake_gender, [len(fake_gender), 1, 1, fake_gender.shape[-1]])
 
-                    # batch_fake_image2 = self.EG_model.predict([batch_real_images, batch_real_label_age_conv])
-                    save_image(noise_image, self.size_image,
+                    batch_fake_image2 = self.EG_model.predict([batch_real_images, fake_age_conv, fake_name_conv, fake_gender_conv])
+                    save_image(batch_fake_image2, self.size_image,
                                self.image_value_range, self.num_input_channels, epoch, index_batch, self.image_mode,
                                self.save_dir+'/image')
                     # save_weights(self.save_dir+'/weight/', self.E_model,

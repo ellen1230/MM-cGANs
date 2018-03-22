@@ -5,7 +5,7 @@ from keras.layers.convolutional import UpSampling2D, Conv2D, Conv2DTranspose
 
 from keras.models import Model
 
-def generator_model(size_z, size_age_label, size_mini_map, size_kernel, size_gen, num_input_channels, num_gen_channels):
+def generator_model(size_z, size_age_label, size_name_label, size_gender_label, size_mini_map, size_kernel, size_gen, num_input_channels, num_gen_channels):
 
     kernel_initializer = initializers.random_normal(stddev=0.02)
     bias_initializer = initializers.constant(value=0.0)
@@ -13,7 +13,9 @@ def generator_model(size_z, size_age_label, size_mini_map, size_kernel, size_gen
     #Input layer
     input_z = Input(shape=(size_z, ))
     input_age_label = Input(shape=(size_age_label, ))
-    current = Concatenate(axis=-1)([input_z, input_age_label])
+    input_name_label = Input(shape=(size_name_label,))
+    input_gender_label = Input(shape=(size_gender_label,))
+    current = Concatenate(axis=-1)([input_z, input_age_label, input_name_label, input_gender_label])
 
     # fc layer
     name = 'G_fc'
@@ -61,4 +63,4 @@ def generator_model(size_z, size_age_label, size_mini_map, size_kernel, size_gen
     current = Activation('tanh')(current)
 
     # output
-    return Model(inputs=[input_z, input_age_label], outputs=current)
+    return Model(inputs=[input_z, input_age_label, input_name_label, input_gender_label], outputs=current)

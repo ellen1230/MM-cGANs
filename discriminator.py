@@ -30,7 +30,7 @@ def discriminator_z_model(size_z, num_Dz_channels):
     return Model(inputs=inputs, outputs=current)
 
 # add the label of age + gender to input layer
-def discriminator_img_model(size_image, size_kernel, size_age_label, num_input_channels, num_Dimg_channels, num_Dimg_fc_channels):
+def discriminator_img_model(size_image, size_kernel, size_age_label, size_name_label, size_gender_label, num_input_channels, num_Dimg_channels, num_Dimg_fc_channels):
 
     kernel_initializer = initializers.truncated_normal(stddev=0.02)
     bias_initializer = initializers.constant(value=0.0)
@@ -41,8 +41,16 @@ def discriminator_img_model(size_image, size_kernel, size_age_label, num_input_c
     input_ages_conv = Input(shape=(1, 1, size_age_label)) # (1, 1, 10*tile_ratio)
     input_ages_conv_repeat = Lambda(duplicate_conv, output_shape=(size_image, size_image, size_age_label),
                                    arguments={'times': size_image})(input_ages_conv) #(128, 128, 10*tile_ratio)
+
+    input_names_conv = Input(shape=(1, 1, size_name_label))
+    input_names_conv_repeat = Lambda(duplicate_conv, output_shape=(size_image, size_image, size_name_label),
+                                     arguments={'times': size_image})(input_names_conv)
+    input_genders_conv = Input(shape=(1, 1, size_gender_label))
+    input_genders_conv_repeat = Lambda(duplicate_conv, output_shape=(size_image, size_image, size_gender_label),
+                                       arguments={'times': size_image})(input_genders_conv)
+
     # concatenate
-    current = Concatenate(axis=-1)([input_images, input_ages_conv_repeat])
+    current = Concatenate(axis=-1)([input_images, input_ages_conv_repeat, input_names_conv_repeat, input_genders_conv_repeat])
     
     num_layers = len(num_Dimg_channels)
 
@@ -102,6 +110,6 @@ def discriminator_img_model(size_image, size_kernel, size_age_label, num_input_c
 
 
     # output
-    return Model(inputs=[input_images, input_ages_conv], outputs=current)
+    return Model(inputs=[input_images, input_ages_conv, input_names_conv, input_genders_conv], outputs=current)
 
 
