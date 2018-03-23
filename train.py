@@ -140,7 +140,7 @@ def generate_latent_center(E_model, real_images, file_names, size_age,
     for i in range(len(file_names)):
         file_name = file_names[i]
         if dataset_name == 'UTKFace':
-            age = int(str(file_names[i]).split('\\')[-1].split('_')[0].split('\\')[-1])
+            age = int(str(file_names[i]).split('/')[-1].split('_')[0].split('/')[-1])
         elif dataset_name == 'CACD':
             age = int(str(file_names[i]).split('/')[-1].split('_')[0])
         age = age_group_label(age)

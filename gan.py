@@ -15,7 +15,7 @@ def egdModel(E, G, discriminator, size_image, size_age_label, size_name_label, s
     z = E([input_images, input_ages_conv, input_names_conv, input_genders_conv])
     generated_image = G([z, input_ages, input_names, input_genders])
     discriminator.trainable = False
-    output = discriminator([generated_image, input_ages_conv])
+    output = discriminator([generated_image, input_ages_conv, input_names_conv, input_genders_conv])
     return Model(inputs=[input_images, input_ages_conv, input_names_conv, input_genders_conv], outputs=output)
 
 def egModel(encoder, generator, size_image, size_age_label, size_name_label, size_gender_label, num_input_channels):
