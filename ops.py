@@ -84,15 +84,15 @@ def concat_label(label, enable_tile_label, tile_ratio):
     #     return tf.concat([x, label*tf.ones([x_shape[0], x_shape[1], x_shape[2], label_shape[-1]])], 3)
 
 
-def load_weights(save_dir):
+def load_weights(save_dir, EGD):
     print("\n\tLoading pre-trained model ...")
     #e_model = load_model(str(save_dir) + '/e.h5')
     #G_model = load_model(str(save_dir) + '/G.h5')
     # D_z_model = load_model(str(save_dir) + '/Dz.h5')
     # D_img_model = load_model((save_dir) + '/Dimg.h5')
     # EG_model = load_model(str(save_dir) + '/EG.h5')
-    model = load_model(str(save_dir) + '/EGD.h5')
-    return model
+    EGD = EGD.load_weights(str(save_dir) + '/EGD.h5', by_name=True)
+    return EGD
     #return [e_model, G_model, D_z_model, D_img_model, EG_model, dcgan_model]
 
 def save_weights(save_dir, EGD_model, Dz_model, epoch, batch):
@@ -260,7 +260,7 @@ def name_gender_label(file_name):
     genders = ['1', '1', '0', '1', '1', '0', '0', '1', '0', '0', '1', '0', '1', '1', '0', '0', '1', '1', '1', '0', '1', '0', '0', '0', '1', '1', '1', '0', '1', '0', '1', '1', '1', '0', '1', '0', '0', '1', '1', '0', '1', '0', '1', '0', '1', '0', '1', '0', '1', '0', '0', '1', '0', '1', '1', '0', '1', '1', '1', '0', '1', '0', '1', '0', '0', '1', '0', '0', '1', '0', '1', '0', '0', '1', '0', '0', '1', '1', '0', '0', '1', '1', '0', '0', '1', '0', '1', '0', '1', '0', '0', '0', '1', '1', '0', '0', '1', '0', '1', '0', '1', '1', '0', '0', '1', '0', '1', '1', '0', '0', '1', '0', '1', '0', '1', '0', '1', '1', '0', '1', '0', '0', '0', '1', '1', '1', '0', '0', '1', '0', '1', '1', '0']
 
     index = names.index(file_name)
-    return index, genders[index]
+    return index, int(genders[index])
 
 
 if __name__ == '__main__':
