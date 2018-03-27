@@ -1,5 +1,5 @@
-from ops import load_image, age_group_label, duplicate, load_weights, \
-    concat_label, save_image, save_weights, load_celebrity_image, save_loss, copy_array
+from ops import load_image, age_group_label, duplicate, \
+    concat_label, save_image, save_weights, load_celebrity_image, save_loss, copy_array, name_gender_label
 import os
 import numpy as np
 import time
@@ -130,86 +130,135 @@ def generate_latant_z(E_model, real_images, real_label_age):
     return E_model, E_model.predict([np.array(real_images), real_label_age_conv], verbose=0)
 
 
-def generate_latent_center(E_model, real_images, file_names, size_age,
+def generate_latent_center(E_model, real_images, file_names, size_age, size_name, size_name_total, size_gender,
                            dataset_name, enable_tile_label, tile_ratio):
     all_center = []
+    all_latant_z = []
     all_image = []
     all_age_label_conv=[]
+    all_name_label_conv = []
+    all_gender_label_conv = []
     images = []
-    age_names = []
+    age_name_genders = []
     for i in range(len(file_names)):
-        file_name = file_names[i]
-        if dataset_name == 'UTKFace':
-            age = int(str(file_names[i]).split('/')[-1].split('_')[0].split('/')[-1])
-        elif dataset_name == 'CACD':
-            age = int(str(file_names[i]).split('/')[-1].split('_')[0])
-        age = age_group_label(age)
-        name = file_name[file_name.index('_')+1: file_name.index('_00')]
-        age_name = str(age) + '_' + name
+        # file_name = file_names[i]
+        # if dataset_name == 'UTKFace':
+        #     age = int(str(file_names[i]).split('/')[-1].split('_')[0].split('/')[-1])
+        # elif dataset_name == 'CACD':
+        #     age = int(str(file_names[i]).split('/')[-1].split('_')[0])
 
+        temp = str(file_names[i]).split('/')[-1]
+        age = int(temp.split('_')[0])
+        name = temp[temp.index('_') + 1: temp.index('00') - 1]
+        age = age_group_label(age)
+        [name, gender] = name_gender_label(name)
+
+        age_name_gender = str(age) + '_' + str(name) + '_' + str(gender)
         try:
-            index = age_names.index(age_name)
+            index = age_name_genders.index(age_name_gender)
             images[index].append(real_images[i])
         except:
-            age_names.append(age_name)
+            age_name_genders.append(age_name_gender)
             images.append([real_images[i]])
 
     # shorten the inner distance
-    for i in range(len(age_names)):
+    for i in range(len(age_name_genders)):
         num = len(images[i])
-        # age_label_conv
-        age = int(age_names[i].split('_')[0])
+        age = int(age_name_genders[i].split('_')[0])
+        name = int(age_name_genders[i].split('_')[1])
+        gender = int(age_name_genders[i].split('_')[-1])
+
         age_label = np.zeros((num, size_age))
         age_label[:, age] = 1
-        age_label = concat_label(age_label, enable_tile_label, tile_ratio)
+        name_label = np.zeros((num, size_name))
+        if int(size_name) > 1:
+            name_label[:, name] = 1
+        else:
+            name_label[:] = name / size_name_total
+        gender_label = np.zeros((num, size_gender))
+        gender_label[:, gender] = 1
+
+        # age_label = concat_label(age_label, enable_tile_label, tile_ratio)
         age_label_conv = np.reshape(age_label, [num, 1, 1, age_label.shape[-1]])
+        name_label_conv = np.reshape(name_label, [num, 1, 1, name_label.shape[-1]])
+        gender_label_conv = np.reshape(gender_label, [num, 1, 1, gender_label.shape[-1]])
 
         # inner z center
-        t = E_model.predict([np.array(images[i]), age_label_conv], verbose=0)
+        t = E_model.predict([np.array(images[i]), age_label_conv, name_label_conv, gender_label_conv], verbose=0)
         c = copy_array(np.average(t, axis=0), num)
 
         # inner center + target
         for index in range(len(c)):
             all_center.append(c[index].tolist())
+            all_latant_z.append(t[index].tolist())
             all_image.append(images[i][index].tolist())
             all_age_label_conv.append(age_label_conv[index].tolist())
+            all_name_label_conv.append(name_label_conv[index].tolist())
+            all_gender_label_conv.append(gender_label_conv[index].tolist())
 
     # largen the inter distance
-    for i in range(len(age_names)):
-        age = int(age_names[i].split('_')[0])
-        name = age_names[i][age_names[i].index('_')+1: ]
+    for i in range(len(age_name_genders)):
+        age = int(age_name_genders[i].split('_')[0])
+        name = int(age_name_genders[i].split('_')[1])
+        gender = int(age_name_genders[i].split('_')[-1])
+
         num = len(images[i])
-        # age_label_conv
         age_label = np.zeros((num, size_age))
         age_label[:, age] = 1
-        age_label = concat_label(age_label, enable_tile_label, tile_ratio)
+        name_label = np.zeros((num, size_name))
+        if int(size_name) > 1:
+            name_label[:, name] = 1
+        else:
+            name_label[:] = name / size_name_total
+        gender_label = np.zeros((num, size_gender))
+        gender_label[:, gender] = 1
+
+        # age_label = concat_label(age_label, enable_tile_label, tile_ratio)
         age_label_conv = np.reshape(age_label, [num, 1, 1, age_label.shape[-1]])
+        name_label_conv = np.reshape(name_label, [num, 1, 1, name_label.shape[-1]])
+        gender_label_conv = np.reshape(gender_label, [num, 1, 1, gender_label.shape[-1]])
 
+        current_age_name_genders = age_name_genders[0: i] + age_name_genders[i + 1: len(age_name_genders)]
+        for j in range(len(current_age_name_genders)):
+            current_age = int(current_age_name_genders[j].split('_')[0])
+            current_name = int(current_age_name_genders[j].split('_')[1])
+            current_gender = int(current_age_name_genders[j].split('_')[-1])
 
-        current_age_names = age_names[0:i] + age_names[i+1:len(age_names)]
-        for j in range(len(current_age_names)):
-            current_age = int(current_age_names[j].split('_')[0])
-            current_name = current_age_names[j][age_names[i].index('_') + 1:]
             if (current_age != age) and (current_name == name):
-                index = age_names.index(str(current_age)+'_'+current_name)
+                index = age_name_genders.index(str(current_age)+'_'+str(current_name)+'_'+str(current_gender))
 
                 current_num = len(images[index])
                 # current_age_label_conv
                 current_age_label = np.zeros((current_num, size_age))
                 current_age_label[:, current_age] = 1
-                current_age_label = concat_label(current_age_label, enable_tile_label, tile_ratio)
+                current_name_label = np.zeros((current_num, size_name))
+                if int(size_name) > 1:
+                    current_name_label[:, current_name] = 1
+                else:
+                    current_name_label[:] = current_name / size_name_total
+                current_gender_label = np.zeros((current_num, size_gender))
+                current_gender_label[:, current_gender] = 1
+
+
+                # current_age_label = concat_label(current_age_label, enable_tile_label, tile_ratio)
                 current_age_label_conv = np.reshape(current_age_label, [current_num, 1, 1, current_age_label.shape[-1]])
+                current_name_label_conv = np.reshape(current_name_label, [current_num, 1, 1, current_name_label.shape[-1]])
+                current_gender_label_conv = np.reshape(current_gender_label, [current_num, 1, 1, current_gender_label.shape[-1]])
 
                 # inter z center
-                t = E_model.predict([np.array(images[index]), current_age_label_conv], verbose=0)
+                t = E_model.predict([np.array(images[index]), current_age_label_conv, current_name_label_conv, current_gender_label_conv], verbose=0)
                 c = copy_array(-np.average(t, axis=0), num)
 
                 # inner center + target
                 for m in range(len(c)):
                     all_center.append(c[m].tolist())
+                    all_latant_z.append(t[index].tolist())
                     all_image.append(images[i][m].tolist())
                     all_age_label_conv.append(age_label_conv[m].tolist())
+                    all_name_label_conv.append(name_label_conv[m].tolist())
+                    all_gender_label_conv.append(gender_label_conv[m].tolist())
 
-    return E_model, np.array(all_image), np.array(all_age_label_conv), np.array(all_center)
+    return E_model, np.array(all_image), np.array(all_age_label_conv), np.array(all_name_label_conv), np.array(all_gender_label_conv), \
+           np.array(all_center), np.array(all_latant_z)
 
 

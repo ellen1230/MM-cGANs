@@ -4,6 +4,7 @@ from keras.layers.core import Activation, Reshape, Flatten
 from keras.layers.convolutional import UpSampling2D, Conv2D, Conv2DTranspose
 
 from keras.models import Model
+import tensorflow as tf
 
 def generator_model(size_z, size_age_label, size_name_label, size_gender_label, size_mini_map, size_kernel, size_gen, num_input_channels, num_gen_channels):
 
@@ -27,8 +28,8 @@ def generator_model(size_z, size_age_label, size_name_label, size_gender_label, 
     # Reshape
     current = Reshape(target_shape=(size_mini_map, size_mini_map, size_gen))(current)
     # BatchNormalization
-    # current = Lambda(tf.contrib.layers.batch_norm, output_shape=(size_mini_map, size_mini_map, size_gen),
-    #                  arguments={'decay': 0.9, 'epsilon': 1e-5, 'scale': True})(current)
+    current = Lambda(tf.contrib.layers.batch_norm, output_shape=(size_mini_map, size_mini_map, size_gen),
+                     arguments={'decay': 0.9, 'epsilon': 1e-5, 'scale': True})(current)
     # Activation
     current = Activation(activation='relu')(current)
 

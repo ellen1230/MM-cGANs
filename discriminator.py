@@ -108,6 +108,7 @@ def discriminator_img_model(size_image, size_kernel, size_age_label, size_name_l
         bias_initializer=bias_initializer,
         name=name)(current)
 
+    # output = Activation('sigmoid')(current)
 
     # output
     return Model(inputs=[input_images, input_ages_conv, input_names_conv, input_genders_conv], outputs=current)

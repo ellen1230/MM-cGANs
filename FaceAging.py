@@ -234,7 +234,7 @@ class FaceAging(object):
                     #     age = int(temp.split('_')[0])
                     #     name = temp[temp.index('_')+1: temp.index('00')-1]
 
-                    temp = str(batch_files[i]).split('\\')[-1]
+                    temp = str(batch_files[i]).split('/')[-1]
                     age = int(temp.split('_')[0])
                     name = temp[temp.index('_')+1: temp.index('00')-1]
                     age = age_group_label(age)
