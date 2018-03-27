@@ -9,7 +9,7 @@ import os
 import numpy as np
 import time
 import keras.backend as K
-
+from keras.utils import multi_gpu_model
 
 class FaceAging(object):
     def __init__(self,
@@ -45,7 +45,8 @@ class FaceAging(object):
                  save_dir='./save',  # path to save checkpoints, samples, and summary
 
                  image_mode='RGB',
-                 loss_weights = [0, 0, 0]
+                 loss_weights=[0, 0, 0, 0],
+                 num_GPU=2
                  ):
         self.image_value_range = (-1, 1)
         self.size_image = size_image
@@ -70,6 +71,7 @@ class FaceAging(object):
         self.dataset_name = dataset_name
         self.image_mode = image_mode
         self.loss_weights = loss_weights
+        self.num_GPU = num_GPU
 
         print("\n\tBuilding the graph...")
 
@@ -138,6 +140,14 @@ class FaceAging(object):
         self.EGD_model = gan.egdModel(
             self.E_model, self.G_model, self.D_img_model,
             self.size_image, self.size_age_label, self.size_name, self.size_gender, self.num_input_channels)
+
+        # ****************************** multi-GPU ***********************************
+        # self.E_model = multi_gpu_model(self.E_model, gpus=self.num_GPU)
+        # self.G_model = multi_gpu_model(self.G_model, gpus=self.num_GPU)
+        # self.D_img_model = multi_gpu_model(self.D_img_model, gpus=self.num_GPU)
+        # self.EG_model = multi_gpu_model(self.EG_model, gpus=self.num_GPU)
+        # self.GD_model = multi_gpu_model(self.GD_model, gpus=self.num_GPU)
+        # self.EGD_model = multi_gpu_model(self.EGD_model, gpus=self.num_GPU)
 
 
 
@@ -356,19 +366,22 @@ class FaceAging(object):
                 end_time = time.time()
                 print('EGD_model time: ', str((end_time - start_time) / 60))
 
-                output_E = batch_latant_z
-                output_E_center = batch_latent_center
+
 
                 # loss_all
                 start_time = time.time()
+                output_E = batch_latant_z
+                output_E_center = batch_latent_center
 
                 image_num = len(batch_real_images)
-                output_D_real = self.D_img_model.predict([batch_real_images, train_batch_age_conv[0: image_num],
-                                                          train_batch_name_conv[0: image_num], train_batch_gender_conv[0: image_num]])
-                output_D_fake = self.D_img_model.predict([batch_fake_image, train_batch_age_conv[0: image_num],
-                                                          train_batch_name_conv[0: image_num], train_batch_gender_conv[0: image_num]])
+                output_D_real = self.D_img_model.predict([batch_real_images, batch_real_label_age_conv, batch_real_label_name_conv, batch_real_label_gender_conv])
+                output_D_fake = self.D_img_model.predict([batch_fake_image, batch_real_label_age_conv, batch_real_label_name_conv, batch_real_label_gender_conv])
                 output_EGD = self.EGD_model.predict([batch_fake_image, batch_real_label_age_conv, batch_real_label_name_conv, batch_real_label_gender_conv])
-                loss_all.append(self.loss_Model.train_on_batch([output_E, output_E_center, output_D_real, output_D_fake, output_EGD], np.zeros(size_batch)))
+
+                output_D_real = np.concatenate((output_D_real, output_D_real))
+                output_D_fake = np.concatenate((output_D_fake, output_D_fake))
+                output_EGD = np.concatenate((output_EGD, output_EGD))
+                loss_all.append(self.loss_Model.train_on_batch([output_E, output_E_center, output_D_real, output_D_fake, output_EGD], np.zeros(size_batch*2)))
                 end_time = time.time()
                 print('loss_all on b_', index_batch, 'e_', epoch, 'is ', loss_all[-1])
 
@@ -418,8 +431,9 @@ class FaceAging(object):
                                self.save_dir + '/image')
                     # ************************  end of E to generate latant_z ************************
 
-                    save_weights(self.save_dir + '/weight', self.EGD_model, None,  epoch, index_batch)
-                    save_loss(self.save_dir+'/metric', loss_E, loss_Dimg, loss_EGD1, loss_EGD2)
+            if (epoch % 20 == 0) or (epoch == 1):
+                save_weights(self.save_dir + '/weight', self.EGD_model, None,  epoch, 0)
+                save_loss(self.save_dir+'/metric', loss_E, loss_Dimg, loss_EGD1, loss_EGD2)
 
 
     # def generate_fake_image(self, size_batch):

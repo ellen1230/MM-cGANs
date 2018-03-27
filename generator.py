@@ -28,8 +28,8 @@ def generator_model(size_z, size_age_label, size_name_label, size_gender_label, 
     # Reshape
     current = Reshape(target_shape=(size_mini_map, size_mini_map, size_gen))(current)
     # BatchNormalization
-    current = Lambda(tf.contrib.layers.batch_norm, output_shape=(size_mini_map, size_mini_map, size_gen),
-                     arguments={'decay': 0.9, 'epsilon': 1e-5, 'scale': True})(current)
+    # current = Lambda(tf.contrib.layers.batch_norm, output_shape=(size_mini_map, size_mini_map, size_gen),
+    #                  arguments={'decay': 0.9, 'epsilon': 1e-5, 'scale': True})(current)
     # Activation
     current = Activation(activation='relu')(current)
 

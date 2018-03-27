@@ -218,6 +218,8 @@ def generate_latent_center(E_model, real_images, file_names, size_age, size_name
         name_label_conv = np.reshape(name_label, [num, 1, 1, name_label.shape[-1]])
         gender_label_conv = np.reshape(gender_label, [num, 1, 1, gender_label.shape[-1]])
 
+        orig_latant_z = E_model.predict([np.array(images[i]), age_label_conv, name_label_conv, gender_label_conv], verbose=0)
+
         current_age_name_genders = age_name_genders[0: i] + age_name_genders[i + 1: len(age_name_genders)]
         for j in range(len(current_age_name_genders)):
             current_age = int(current_age_name_genders[j].split('_')[0])
@@ -247,16 +249,17 @@ def generate_latent_center(E_model, real_images, file_names, size_age, size_name
 
                 # inter z center
                 t = E_model.predict([np.array(images[index]), current_age_label_conv, current_name_label_conv, current_gender_label_conv], verbose=0)
-                c = copy_array(-np.average(t, axis=0), num)
+                c = -np.average(t, axis=0)
 
                 # inner center + target
-                for m in range(len(c)):
-                    all_center.append(c[m].tolist())
-                    all_latant_z.append(t[index].tolist())
+                for m in range(num):
+                    all_center.append(c.tolist())
+                    all_latant_z.append(orig_latant_z[m].tolist())
                     all_image.append(images[i][m].tolist())
                     all_age_label_conv.append(age_label_conv[m].tolist())
                     all_name_label_conv.append(name_label_conv[m].tolist())
                     all_gender_label_conv.append(gender_label_conv[m].tolist())
+
 
     return E_model, np.array(all_image), np.array(all_age_label_conv), np.array(all_name_label_conv), np.array(all_gender_label_conv), \
            np.array(all_center), np.array(all_latant_z)
