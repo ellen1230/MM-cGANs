@@ -175,7 +175,7 @@ class FaceAging(object):
         self.D_img_model.compile(optimizer=adam_D_img, loss='binary_crossentropy')
 
         # ************************** EGD weighted loss *************************************
-        self.loss_Model = loss.get_loss_all(self.size_z, self.size_batch, loss_weights)
+        self.loss_Model = loss.get_loss_all(self.size_z, loss_weights)
         adam_loss = Adam(lr=0.0001, beta_1=0.5)
         # self.loss_Model.compile(optimizer=adam_loss, loss=lambda y_true, y_pred: y_pred)
         self.loss_Model.compile(optimizer=adam_loss, loss='mse')
@@ -373,15 +373,38 @@ class FaceAging(object):
                 output_E = batch_latant_z
                 output_E_center = batch_latent_center
 
-                image_num = len(batch_real_images)
                 output_D_real = self.D_img_model.predict([batch_real_images, batch_real_label_age_conv, batch_real_label_name_conv, batch_real_label_gender_conv])
                 output_D_fake = self.D_img_model.predict([batch_fake_image, batch_real_label_age_conv, batch_real_label_name_conv, batch_real_label_gender_conv])
                 output_EGD = self.EGD_model.predict([batch_fake_image, batch_real_label_age_conv, batch_real_label_name_conv, batch_real_label_gender_conv])
 
-                output_D_real = np.concatenate((output_D_real, output_D_real))
-                output_D_fake = np.concatenate((output_D_fake, output_D_fake))
-                output_EGD = np.concatenate((output_EGD, output_EGD))
-                loss_all.append(self.loss_Model.train_on_batch([output_E, output_E_center, output_D_real, output_D_fake, output_EGD], np.zeros(size_batch*2)))
+                num_output_E = len(output_E)
+                p, q = int(num_output_E/size_batch), int(num_output_E%size_batch)
+
+                D_real, D_fake, EGD = output_D_real, output_D_fake, output_EGD
+                if q > 0:
+                    output_E = np.concatenate((output_E, np.zeros(shape=(size_batch - q, self.size_z))))
+                    output_E_center = np.concatenate((output_E_center, np.zeros(shape=(size_batch - q, self.size_z))))
+                    for ip in range(p):
+                        D_real = np.concatenate((D_real, output_D_real))
+                        D_fake = np.concatenate((D_fake, output_D_fake))
+                        EGD = np.concatenate((EGD, output_EGD))
+                    output_D_real, output_D_fake, output_EGD = D_real, D_fake, EGD
+
+                    loss_all.append(self.loss_Model.train_on_batch(
+                        [output_E, output_E_center, output_D_real, output_D_fake, output_EGD],
+                        np.zeros(size_batch * (p + 1))))
+                elif q == 0:
+                    for ip in range(p - 1):
+                        D_real = np.concatenate((D_real, output_D_real))
+                        D_fake = np.concatenate((D_fake, output_D_fake))
+                        EGD = np.concatenate((EGD, output_EGD))
+                    output_D_real, output_D_fake, output_EGD = D_real, D_fake, EGD
+
+                    loss_all.append(self.loss_Model.train_on_batch(
+                        [output_E, output_E_center, output_D_real, output_D_fake, output_EGD],
+                        np.zeros(size_batch * p)))
+
+
                 end_time = time.time()
                 print('loss_all on b_', index_batch, 'e_', epoch, 'is ', loss_all[-1])
 

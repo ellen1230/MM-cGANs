@@ -6,7 +6,7 @@ import numpy as np
 import keras.losses
 
 # size: all output
-def get_loss_all(size_z, size_batch, weights):
+def get_loss_all(size_z, weights):
     output_E = Input(shape=(size_z, ))
     output_E_center = Input(shape=(size_z, ))
     output_E_value = Subtract()([output_E, output_E_center])
@@ -17,7 +17,7 @@ def get_loss_all(size_z, size_batch, weights):
     output_EGD = Input(shape=(1, ))
 
 
-    loss_E = Lambda(get_loss_E, arguments={'size_batch': size_batch}, output_shape=(None,))(output_E_value)
+    loss_E = Lambda(get_loss_E, output_shape=(None,))(output_E_value)
     loss_D_real = Lambda(get_loss_binary, arguments={'binary': K.ones_like(output_D_real)}, output_shape=(None,))(output_D_real)
     loss_D_fake = Lambda(get_loss_binary, arguments={'binary': K.zeros_like(output_D_real)}, output_shape=(None,))(output_D_fake)
     loss_EGD = Lambda(get_loss_binary, arguments={'binary': K.ones_like(output_EGD)}, output_shape=(None,))(output_EGD)
@@ -34,8 +34,8 @@ def get_loss_all(size_z, size_batch, weights):
 
 
 
-def get_loss_E(t, size_batch):
-    return K.nn.l2_loss(t) / (size_batch * 2)
+def get_loss_E(t):
+    return K.reduce_mean(K.nn.l2_loss(t))
 
 def get_loss_D_real(x):
     K.reduce_mean(K.nn.sigmoid_cross_entropy_with_logits(logits=x, labels=K.ones_like(x)))
