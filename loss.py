@@ -35,7 +35,7 @@ def get_loss_all(size_z, size_batch, weights):
 
 
 def get_loss_E(t, size_batch):
-    return K.nn.l2_loss(t) / size_batch
+    return K.nn.l2_loss(t) / (size_batch * 2)
 
 def get_loss_D_real(x):
     K.reduce_mean(K.nn.sigmoid_cross_entropy_with_logits(logits=x, labels=K.ones_like(x)))
