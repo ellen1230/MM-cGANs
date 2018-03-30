@@ -19,7 +19,7 @@ def train_E_model(e_model, size_age, file_names,
     # 1 (random) images map to latant space
     # 2 latant array to calculate a center
     # 3 copy the center array len(images) time as target_latant
-    # 4 loss_e is self.e_model.train on mean_squared_error
+    # 4 loss_e is e_model.train on mean_squared_error
 
     images_age_label_identity_list = \
             load_celebrity_image('./data/mat/', 'celebrityImageData.mat', file_names)
@@ -49,14 +49,14 @@ def train_E_model(e_model, size_age, file_names,
     # 1 (random) images to latant space
     # 2 latant array to calculate a center
     # 3 use G_model to generate target_img (source = latant)
-    # 4 loss_G is self.G_model.train on mean_squared_error
+    # 4 loss_G is G_model.train on mean_squared_error
 
     # images_age_label_identity_list = \
     #     load_celebrity_image('./data/mat/', 'celebrityImageData.mat', num_pick_image, isRandom)
     # [img, age, latant, latant_center] = \
-    #     self.generate_center_target(images_age_label_identity_list, self.e_model)
-    # target_img = self.G_model.predict(latant)
-    # target_img = self.copy_array(np.average(target_img, axis=0), len(target_img))
+    #     generate_center_target(images_age_label_identity_list, e_model)
+    # target_img = G_model.predict(latant)
+    # target_img = copy_array(np.average(target_img, axis=0), len(target_img))
     #
     # num_batches = len(img) // size_batch
     # loss_G = []
@@ -64,7 +64,7 @@ def train_E_model(e_model, size_age, file_names,
     #     start_time = time.time()
     #     batch_latant = latant[index_batch * size_batch:(index_batch + 1) * size_batch]
     #     batch_img_target = target_img[index_batch * size_batch:(index_batch + 1) * size_batch]
-    #     loss_batch_G = self.G_model.train_on_batch(batch_latant, batch_img_target)
+    #     loss_batch_G = G_model.train_on_batch(batch_latant, batch_img_target)
     #     loss_G.append(loss_batch_G)
     #     end_time = time.time()
 
@@ -72,12 +72,12 @@ def train_E_model(e_model, size_age, file_names,
     # 1 (random) images as source images
     # 2 source images to calculate a center
     # 3 use EG_model to generate target_img (source = latant)
-    # 4 loss_G is self.G_model.train on mean_squared_error
+    # 4 loss_G is G_model.train on mean_squared_error
 
     # images_age_label_identity_list = \
     #     load_celebrity_image('./data/mat/', 'celebrityImageData.mat', num_pick_image, isRandom)
     # [img_source, age, img_target, center] = \
-    #     self.generate_center_target(images_age_label_identity_list, self.EG_model)
+    #     generate_center_target(images_age_label_identity_list, EG_model)
     # num_batches = len(img_source) // size_batch
     # loss_EG = []
     # for index_batch in range(num_batches):
@@ -85,7 +85,7 @@ def train_E_model(e_model, size_age, file_names,
     #     batch_img_source = img_source[index_batch * size_batch:(index_batch + 1) * size_batch]
     #     batch_age = age[index_batch * size_batch:(index_batch + 1) * size_batch]
     #     batch_center = center[index_batch * size_batch:(index_batch + 1) * size_batch]
-    #     loss_batch_EG = self.EG_model.train_on_batch([batch_img_source, batch_age], batch_center)
+    #     loss_batch_EG = EG_model.train_on_batch([batch_img_source, batch_age], batch_center)
     #     loss_EG.append(loss_batch_EG)
     #     end_time = time.time()
 
@@ -122,7 +122,7 @@ def train_E_model(e_model, size_age, file_names,
 #             center.append(array_center[i].tolist())
 #             img.append(list_image[i])
 #             age.append(age_label_conv[i])
-#         #center.append(self.get_array_center(array_latant).tolist())
+#         #center.append(get_array_center(array_latant).tolist())
 #     return [np.array(img), np.array(age), np.array(target), np.array(center)]
 
 def generate_latant_z(E_model, real_images, real_label_age):
@@ -267,4 +267,123 @@ def generate_latent_center(E_model, real_images, file_names, size_age, size_name
     return E_model, np.array(all_image), np.array(all_age_label_conv), np.array(all_name_label_conv), np.array(all_gender_label_conv), \
            np.array(all_center), np.array(all_latant_z)
 
+def train_loss_all(batch_files, batch_real_images, size_age, size_name, size_gender, size_name_total,
+                   E_model, EG_model, loss_Model, batch, epoch):
+    loss_all = []
+    images_by_name_age = []
+    age_name_genders = []
+    for i, label in enumerate(batch_files):
 
+        # temp = str(batch_files[i]).split('/')[-1]
+        temp = str(batch_files[i]).split('\\')[-1]
+        age = int(temp.split('_')[0])
+        name = temp[temp.index('_') + 1: temp.index('00') - 1]
+        age = age_group_label(age)
+        [name, gender] = name_gender_label(name)
+
+        age_name_gender = str(age) + '_' + str(name) + '_' + str(gender)
+        try:
+            index = age_name_genders.index(age_name_gender)
+            images_by_name_age[index].append(batch_real_images[i])
+        except:
+            age_name_genders.append(age_name_gender)
+            images_by_name_age.append([batch_real_images[i]])
+
+    # shorten inner distance
+    for i in range(len(age_name_genders)):
+        input_real_images = np.array(images_by_name_age[i])
+        num = len(input_real_images)
+        if num >= 3:
+            age = int(age_name_genders[i].split('_')[0])
+            name = int(age_name_genders[i].split('_')[1])
+            gender = int(age_name_genders[i].split('_')[-1])
+
+            age_label = np.zeros((num, size_age))
+            age_label[:, age] = 1
+            name_label = np.zeros((num, size_name))
+            if int(size_name) > 1:
+                name_label[:, name] = 1
+            else:
+                name_label[:] = name / size_name_total
+            gender_label = np.zeros((num, size_gender))
+            gender_label[:, gender] = 1
+
+            # age_label = concat_label(age_label, enable_tile_label, tile_ratio)
+            age_label_conv = np.reshape(age_label, [num, 1, 1, age_label.shape[-1]])
+            name_label_conv = np.reshape(name_label, [num, 1, 1, name_label.shape[-1]])
+            gender_label_conv = np.reshape(gender_label, [num, 1, 1, gender_label.shape[-1]])
+
+            t = E_model.predict([np.array(input_real_images), age_label_conv, name_label_conv, gender_label_conv],
+                                     verbose=0)
+            c = copy_array(np.average(t, axis=0), num)
+
+            input_fake_images = EG_model.predict(
+                [input_real_images, age_label_conv, name_label_conv, gender_label_conv], verbose=0)
+
+            loss_all.append(loss_Model.train_on_batch(
+                [input_real_images, input_fake_images, age_label_conv, name_label_conv, gender_label_conv, c],
+                np.zeros(num)))
+            print('loss_all on b_', batch, 'e_', epoch, 'for shorten inner distance is', loss_all[-1])
+
+
+    # largen the inter distance
+    for i in range(len(age_name_genders)):
+        age = int(age_name_genders[i].split('_')[0])
+        name = int(age_name_genders[i].split('_')[1])
+        gender = int(age_name_genders[i].split('_')[-1])
+
+        input_real_images = np.array(images_by_name_age[i])
+        num = len(input_real_images)
+
+        age_label = np.zeros((num, size_age))
+        age_label[:, age] = 1
+        name_label = np.zeros((num, size_name))
+        if int(size_name) > 1:
+            name_label[:, name] = 1
+        else:
+            name_label[:] = name / size_name_total
+        gender_label = np.zeros((num, size_gender))
+        gender_label[:, gender] = 1
+
+        age_label_conv = np.reshape(age_label, [num, 1, 1, age_label.shape[-1]])
+        name_label_conv = np.reshape(name_label, [num, 1, 1, name_label.shape[-1]])
+        gender_label_conv = np.reshape(gender_label, [num, 1, 1, gender_label.shape[-1]])
+
+        current_age_name_genders = age_name_genders[0: i] + age_name_genders[i + 1: len(age_name_genders)]
+        for j in range(len(current_age_name_genders)):
+            current_age = int(current_age_name_genders[j].split('_')[0])
+            current_name = int(current_age_name_genders[j].split('_')[1])
+            current_gender = int(current_age_name_genders[j].split('_')[-1])
+
+            if (current_age != age) and (current_name == name):
+                index = age_name_genders.index(str(current_age) + '_' + str(current_name) + '_' + str(current_gender))
+
+                current_num = len(images_by_name_age[index])
+                if current_num >= 3:
+                    # current_age_label_conv
+                    current_age_label = np.zeros((current_num, size_age))
+                    current_age_label[:, current_age] = 1
+                    current_name_label = np.zeros((current_num, size_name))
+                    if int(size_name) > 1:
+                        current_name_label[:, current_name] = 1
+                    else:
+                        current_name_label[:] = current_name / size_name_total
+                    current_gender_label = np.zeros((current_num, size_gender))
+                    current_gender_label[:, current_gender] = 1
+
+                    # current_age_label = concat_label(current_age_label, enable_tile_label, tile_ratio)
+                    current_age_label_conv = np.reshape(current_age_label, [current_num, 1, 1, current_age_label.shape[-1]])
+                    current_name_label_conv = np.reshape(current_name_label, [current_num, 1, 1, current_name_label.shape[-1]])
+                    current_gender_label_conv = np.reshape(current_gender_label, [current_num, 1, 1, current_gender_label.shape[-1]])
+
+                    # inter z center
+                    t = E_model.predict([np.array(images_by_name_age[index]), current_age_label_conv, current_name_label_conv, current_gender_label_conv], verbose=0)
+                    c = copy_array(-np.average(t, axis=0), num)
+
+                    input_fake_images = EG_model.predict([input_real_images, age_label_conv, name_label_conv, gender_label_conv], verbose=0)
+
+                    loss_all.append(loss_Model.train_on_batch([input_real_images, input_fake_images, age_label_conv, name_label_conv,
+                         gender_label_conv, c], np.zeros(num)))
+                    print('loss_all on b_', batch, 'e_', epoch, 'for largen inter distance is', loss_all[-1])
+
+    return loss_Model, loss_all
