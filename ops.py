@@ -10,6 +10,8 @@ import DataClass
 import random
 import keras
 from pylab import *
+import matplotlib as mpl
+mpl.use('Agg')
 
 def load_image(
         image_path,  # path of a image
@@ -275,8 +277,8 @@ def get_inner_inter_center_by_age_name(file_names, size_image, image_value_range
 
     for i, label in enumerate(file_names):
 
-        temp = str(file_names[i]).split('/')[-1]
-        # temp = str(file_names[i]).split('\\')[-1]
+        # temp = str(file_names[i]).split('/')[-1]
+        temp = str(file_names[i]).split('\\')[-1]
         age = int(temp.split('_')[0])
         name = temp[temp.index('_') + 1: temp.index('00') - 1]
         age = age_group_label(age)
@@ -387,8 +389,7 @@ def get_inner_inter_center_by_age_name(file_names, size_image, image_value_range
 
 def draw_loss_metric(save_dir, npy_name):
 
-    import matplotlib as mpl
-    mpl.use('Agg')
+
 
     if os.path.exists(save_dir+npy_name + ".png"):
         print('remove loss png')
@@ -402,16 +403,19 @@ def draw_loss_metric(save_dir, npy_name):
 
     # X = np.linspace(-np.pi, np.pi, 256,endpoint=True)
     # C,S = np.cos(X), np.sin(X)
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
     F = np.load(save_dir + npy_name + '.npy')
     X = np.linspace(1, len(F), len(F), endpoint=True)
 
     # Plot cosine using blue color with a continuous line of width 1 (pixels)
-    plot(X, F, color="blue", linewidth=1.0, linestyle="-")
-    savefig(save_dir+npy_name + ".png", dpi=80)
+    ax.plot(X, F, color="blue", linewidth=1.0, linestyle="-")
+    savefig(save_dir+npy_name + ".png")
+    ax.clear()
     # show()
 
 
 
 
 if __name__ == '__main__':
-    draw_loss_metric('./save/metric/', 'loss_E')
+    draw_loss_metric('./save/metric/', 'loss_all')
