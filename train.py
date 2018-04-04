@@ -274,8 +274,8 @@ def train_loss_all(batch_files, batch_real_images, size_age, size_name, size_gen
     age_name_genders = []
     for i, label in enumerate(batch_files):
 
-        # temp = str(batch_files[i]).split('/')[-1]
-        temp = str(batch_files[i]).split('\\')[-1]
+        temp = str(batch_files[i]).split('/')[-1]
+        # temp = str(batch_files[i]).split('\\')[-1]
         age = int(temp.split('_')[0])
         name = temp[temp.index('_') + 1: temp.index('00') - 1]
         age = age_group_label(age)
@@ -313,16 +313,13 @@ def train_loss_all(batch_files, batch_real_images, size_age, size_name, size_gen
             name_label_conv = np.reshape(name_label, [num, 1, 1, name_label.shape[-1]])
             gender_label_conv = np.reshape(gender_label, [num, 1, 1, gender_label.shape[-1]])
 
-            t = E_model.predict([np.array(input_real_images), age_label_conv, name_label_conv, gender_label_conv],
-                                     verbose=0)
+            t = E_model.predict([np.array(input_real_images), age_label_conv, name_label_conv, gender_label_conv], verbose=0)
             c = copy_array(np.average(t, axis=0), num)
 
-            input_fake_images = EG_model.predict(
-                [input_real_images, age_label_conv, name_label_conv, gender_label_conv], verbose=0)
+            input_fake_images = EG_model.predict([np.array(input_real_images), age_label_conv, name_label_conv, gender_label_conv], verbose=0)
 
             loss_all.append(loss_Model.train_on_batch(
-                [input_real_images, input_fake_images, age_label_conv, name_label_conv, gender_label_conv, c],
-                np.zeros(num)))
+                [input_real_images, input_fake_images, age_label_conv, name_label_conv, gender_label_conv, c], np.zeros(num)))
             print('loss_all on b_', batch, 'e_', epoch, 'for shorten inner distance is', loss_all[-1])
 
 
