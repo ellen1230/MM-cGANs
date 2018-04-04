@@ -9,6 +9,7 @@ import scipy.io as scio
 import DataClass
 import random
 import keras
+from pylab import *
 
 def load_image(
         image_path,  # path of a image
@@ -140,12 +141,11 @@ def save_image(images, size_image, image_value_range, num_input_channels, epoch,
 
 
 
-def save_loss(save_dir, loss_E, loss_Dimg, loss_GD1, loss_GD2):
+def save_loss(save_dir, loss_E, loss_Dimg, loss_all):
 
     np.save(save_dir+'/loss_E.npy', np.array(loss_E))
     np.save(save_dir+'/loss_Dimg.npy', np.array(loss_Dimg))
-    np.save(save_dir+'/loss_GD1.npy', np.array(loss_GD1))
-    np.save(save_dir+'/loss_GD2.npy', np.array(loss_GD2))
+    np.save(save_dir+'/loss_all.npy', np.array(loss_all))
 
     # f_e = open(save_dir+'/loss_e', 'wb')
     # f_dimg = open(save_dir+'/loss_dimg', 'wb')
@@ -254,7 +254,7 @@ def lrelu(x, leak=0.2, name="lrelu"):
   return tf.maximum(x, leak*x)
 
 def name_gender_label(file_name):
-    names = ['Michael_Cera', 'Julianna_Margulies', 'Pierce_Brosnan', 'Ray_Liotta', 'Rene_Russo', 'Roland_Emmerich', 'Sam_Raimi', 'Rosanna_Arquette', 'Tilda_Swinton', 'Tim_Daly', 'Dana_Delany', 'Jennifer_Tilly', 'Kevin_Pollak', 'Madonna', 'Tom_Sizemore', 'Tony_Shalhoub', 'Vicki_Lewis', 'Virginia_Madsen', 'Woody_Harrelson', 'Zeljko_Ivanek', 'Adam_Arkin', 'Alfre_Woodard', 'Jon_Bon_Jovi', 'Julia_Louis-Dreyfus', 'ulianna_Margulies', 'Julianne_Moore', 'Keanu_Reeves', 'Peter_Jackson', 'Clive_Owen', 'Fran_Drescher', 'Garret_Dillahunt', 'Geena_Davis', 'Guillermo_del_Toro', 'Kevin_Spacey', 'Jeff_Perry', 'Jennifer_Coolidge', 'Joss_Whedon', 'Patricia_Clarkson', 'Oprah_Winfrey', 'Mykelti_Williamson', 'Michael_Cerveris', 'Melanie_Griffith', 'Kelsey_Grammer', 'Lauren_Graham', 'Mark_Wahlberg', 'Megyn_Price', 'Nathan_Fillion', 'Paget_Brewster', 'Paul_Rudd', 'Lauren_Holly', 'Sean_Patrick_Flanery', 'Shannen_Doherty', 'Taraji_P._Henson', 'Tim_Guinee', 'Rachel_Weisz', 'Stephen_Baldwin', 'Til_Schweiger', 'Tina_Fey', 'Aaron_Eckhart', 'Adewale_Akinnuoye-Agbaje', 'Sharlto_Copley', 'Amanda_Peet', 'Bradley_Cooper', 'Carla_Gallo', 'Casper_Van_Dien', 'Christina_Hendricks', 'Maya_Rudolph', 'Martin_Freeman', 'Naomi_Watts', 'Denise_Richards', 'Edward_Norton', 'Elizabeth_Mitchell', 'Josh_Radnor', 'Kathleen_Robertson', 'Lucy_Liu', 'Aaron_Johnson', 'Britt_Robertson', 'Caitlin_Stasey', 'Chris_Colfer', 'Diego_Boneta', 'Emma_Watson', 'Jennifer_Lawrence', 'Liam_Hemsworth', 'Rupert_Grint', 'Rose_McIver', 'Naya_Rivera', 'Daniel_Radcliffe', 'Amanda_Bynes', 'Brant_Daugherty', 'Dakota_Johnson', 'Hunter_Parrish', 'Emma_Stone', 'Kristen_Connolly', 'Keira_Knightley', 'Taylor_Kinney', 'Hayden_Christensen', 'Katy_Perry', 'January_Jones', 'Chace_Crawford', 'Lily_Rabe', 'Matt_Bomer', 'Masiela_Lusha', 'Matthew_Goode', 'Nick_Cannon', 'Britney_Spears', 'Daniela_Ruah', 'Jesse_Tyler_Ferguson', 'Drea_de_Matteo', 'Corey_Haim', 'Shawn_Ashmore', 'Sarah_Drew', 'Emily_Deschanel', 'Hugh_Dancy', 'Lauren_German', 'Lee_Pace', 'Kate_Hudson', 'Luke_Wilson', 'Sarah_Michelle_Gellar', 'Neil_Patrick_Harris', 'Ryan_Kwanten', 'Radha_Mitchell', 'Desmond_Harrington', 'Heidi_Klum', 'Samantha_Barks', 'Chelsea_Kane', 'Tom_Mison', 'Aaron_Tveit', 'Matt_Lanter', 'Bryce_Dallas_Howard', 'Rosario_Dawson', 'Eric_Dane', 'Deborah_Ann_Woll', 'Luke_Evans', 'Jason_Segel', 'Elizabeth_Mitchell']
+    names = ['Michael_Cera', 'Julianna_Margulies', 'Treat_Williams', 'Peter_Jackson', 'Roseanne_Barr', 'William_Katt', 'Sam_Raimi', 'Rosanna_Arquette', 'Tilda_Swinton', 'Tim_Daly', 'Dana_Delany', 'Jennifer_Tilly', 'Kevin_Pollak', 'Madonna', 'Tom_Sizemore', 'John_Goodman', 'Vicki_Lewis', 'Virginia_Madsen', 'Woody_Harrelson', 'Zeljko_Ivanek', 'Adam_Arkin', 'Alfre_Woodard', 'Jon_Bon_Jovi', 'Julia_Louis-Dreyfus', 'ulianna_Margulies', 'Julianne_Moore', 'Ray_Romano', 'Peter_Jackson', 'Matt_LeBlanc', 'Fran_Drescher', 'Hugh_Grant', 'Geena_Davis', 'Eric_Roberts', 'Kevin_Spacey', 'Jeff_Perry', 'Jennifer_Coolidge', 'Dylan_McDermott', 'Patricia_Clarkson', 'Jennifer_Tilly', 'Mykelti_Williamson', 'Michael_Cerveris', 'Melanie_Griffith', 'Kelsey_Grammer', 'Lauren_Graham', 'Mark_Wahlberg', 'Megyn_Price', 'Nathan_Fillion', 'Paget_Brewster', 'Paul_Rudd', 'Virginia_Madsen', 'Sean_Patrick_Flanery', 'Shannen_Doherty', 'Taraji_P._Henson', 'Tim_Guinee', 'Rachel_Weisz', 'Stephen_Baldwin', 'Mark_Ruffalo', 'Tina_Fey', 'Aaron_Eckhart', 'Adewale_Akinnuoye-Agbaje', 'Sharlto_Copley', 'Amanda_Peet', 'Bradley_Cooper', 'Carla_Gallo', 'Casper_Van_Dien', 'Christina_Hendricks', 'Maya_Rudolph', 'Martin_Freeman', 'Naomi_Watts', 'Denise_Richards', 'Edward_Norton', 'Elizabeth_Mitchell', 'Michael_Pitt', 'Emily_Procter', 'Lucy_Liu', 'Aaron_Johnson', 'Britt_Robertson', 'Caitlin_Stasey', 'Chris_Colfer', 'Diego_Boneta', 'Emma_Watson', 'Jennifer_Lawrence', 'Liam_Hemsworth', 'Rupert_Grint', 'Rose_McIver', 'Naya_Rivera', 'Daniel_Radcliffe', 'Amanda_Bynes', 'Brant_Daugherty', 'Dakota_Johnson', 'Hunter_Parrish', 'Emma_Stone', 'Kristen_Connolly', 'Keira_Knightley', 'Taylor_Kinney', 'Hayden_Christensen', 'Katy_Perry', 'January_Jones', 'Chace_Crawford', 'Lily_Rabe', 'Matt_Bomer', 'Masiela_Lusha', 'Matthew_Goode', 'Nick_Cannon', 'Britney_Spears', 'Aimee_Teegarden', 'Jesse_Tyler_Ferguson', 'Drea_de_Matteo', 'Corey_Haim', 'Shawn_Ashmore', 'Sarah_Drew', 'Emily_Deschanel', 'Hugh_Dancy', 'Lauren_German', 'Lee_Pace', 'Kate_Hudson', 'Luke_Wilson', 'Sarah_Michelle_Gellar', 'Patrick_Dempsey', 'Ryan_Kwanten', 'Ali_Larter', 'Desmond_Harrington', 'Milla_Jovovich', 'Samantha_Barks', 'Chelsea_Kane', 'Tom_Mison', 'Matthew_Goode', 'Clark_Duke', 'Bryce_Dallas_Howard', 'Rosario_Dawson', 'Eric_Dane', 'Deborah_Ann_Woll', 'Luke_Evans', 'Jason_Segel', 'Elizabeth_Mitchell']
 
     # woman: 0 man:1
     genders = ['1', '0', '1', '1', '0', '1', '1', '0', '0', '1', '0', '0', '1', '0', '1', '1', '0', '0', '1', '1', '1', '0', '1', '0', '0', '0', '1', '1', '1', '0', '1', '0', '1', '1', '1', '0', '1', '0', '0', '1', '1', '0', '1', '0', '1', '0', '1', '0', '1', '0', '1', '0', '0', '1', '0', '1', '1', '0', '1', '1', '1', '0', '1', '0', '1', '0', '0', '1', '0', '0', '1', '0', '1', '0', '0', '1', '0', '0', '1', '1', '0', '0', '1', '1', '0', '0', '1', '0', '1', '0', '1', '0', '0', '0', '1', '1', '0', '0', '1', '0', '1', '0', '1', '1', '0', '0', '1', '0', '1', '1', '0', '0', '1', '0', '1', '0', '1', '0', '1', '1', '0', '1', '0', '0', '0', '1', '1', '1', '0', '0', '1', '0', '1', '1', '0']
@@ -262,18 +262,156 @@ def name_gender_label(file_name):
     index = names.index(file_name)
     return index, int(genders[index])
 
+def get_inner_inter_center_by_age_name(file_names, size_image, image_value_range, num_input_channels, size_age, size_name, size_gender, size_name_total, E_model):
+
+    file_names_by_name_age = []
+    age_name_genders = []
+    file_names_reorder = []
+    inner_centers = []
+    inter_centers = []
+    age_labels = []
+    name_labels = []
+    gender_labels = []
+
+    for i, label in enumerate(file_names):
+
+        temp = str(file_names[i]).split('/')[-1]
+        # temp = str(file_names[i]).split('\\')[-1]
+        age = int(temp.split('_')[0])
+        name = temp[temp.index('_') + 1: temp.index('00') - 1]
+        age = age_group_label(age)
+        [name, gender] = name_gender_label(name)
+
+        age_name_gender = str(age) + '_' + str(name) + '_' + str(gender)
+        try:
+            index = age_name_genders.index(age_name_gender)
+            file_names_by_name_age[index].append(file_names[i])
+        except:
+            age_name_genders.append(age_name_gender)
+            file_names_by_name_age.append([file_names[i]])
+
+
+    for i in range(len(age_name_genders)):
+        # inner centers
+        inputs_file_names = file_names_by_name_age[i]
+        input_real_images = \
+            [load_image(
+                image_path=file_name,
+                image_size=size_image,
+                image_value_range=image_value_range,
+                is_gray=(num_input_channels == 1),
+        ) for file_name in inputs_file_names]
+        if num_input_channels == 1:
+            input_real_images = np.array(input_real_images).astype(np.float32)[:, :, :, None]
+        else:
+            input_real_images = np.array(input_real_images).astype(np.float32)
+
+        num = len(input_real_images)
+
+        age = int(age_name_genders[i].split('_')[0])
+        name = int(age_name_genders[i].split('_')[1])
+        gender = int(age_name_genders[i].split('_')[-1])
+
+        age_label = np.zeros((num, size_age))
+        age_label[:, age] = 1
+        name_label = np.zeros((num, size_name))
+        if int(size_name) > 1:
+            name_label[:, name] = 1
+        else:
+            name_label[:] = name / size_name_total
+        gender_label = np.zeros((num, size_gender))
+        gender_label[:, gender] = 1
+
+        # age_label = concat_label(age_label, enable_tile_label, tile_ratio)
+        age_label_conv = np.reshape(age_label, [num, 1, 1, age_label.shape[-1]])
+        name_label_conv = np.reshape(name_label, [num, 1, 1, name_label.shape[-1]])
+        gender_label_conv = np.reshape(gender_label, [num, 1, 1, gender_label.shape[-1]])
+
+        inner_target = E_model.predict([input_real_images, age_label_conv, name_label_conv, gender_label_conv], verbose=0)
+        inner_center = copy_array(np.average(inner_target, axis=0), num)
+
+        # inter centers
+        current_age_name_genders = age_name_genders[0: i] + age_name_genders[i + 1: len(age_name_genders)]
+        for j in range(len(current_age_name_genders)):
+            current_age = int(current_age_name_genders[j].split('_')[0])
+            current_name = int(current_age_name_genders[j].split('_')[1])
+            current_gender = int(current_age_name_genders[j].split('_')[-1])
+
+            if (current_age != age) and (current_name == name):
+                index = age_name_genders.index(str(current_age) + '_' + str(current_name) + '_' + str(current_gender))
+
+                current_num = len(file_names_by_name_age[index])
+                current_age_label = np.zeros((current_num, size_age))
+                current_age_label[:, current_age] = 1
+                current_name_label = np.zeros((current_num, size_name))
+                if int(size_name) > 1:
+                    current_name_label[:, current_name] = 1
+                else:
+                    current_name_label[:] = current_name / size_name_total
+                current_gender_label = np.zeros((current_num, size_gender))
+                current_gender_label[:, current_gender] = 1
+
+                # current_age_label = concat_label(current_age_label, enable_tile_label, tile_ratio)
+                current_age_label_conv = np.reshape(current_age_label, [current_num, 1, 1, current_age_label.shape[-1]])
+                current_name_label_conv = np.reshape(current_name_label, [current_num, 1, 1, current_name_label.shape[-1]])
+                current_gender_label_conv = np.reshape(current_gender_label, [current_num, 1, 1, current_gender_label.shape[-1]])
+
+                current_inputs_file_names = file_names_by_name_age[index]
+                current_image = [load_image(
+                        image_path=file_name,
+                        image_size=size_image,
+                        image_value_range=image_value_range,
+                        is_gray=(num_input_channels == 1),
+                ) for file_name in current_inputs_file_names]
+                if num_input_channels == 1:
+                    current_image = np.array(current_image).astype(np.float32)[:, :, :, None]
+                else:
+                    current_image = np.array(current_image).astype(np.float32)
+
+
+                inter_target = E_model.predict([current_image, current_age_label_conv, current_name_label_conv, current_gender_label_conv], verbose=0)
+                inter_center = copy_array(-np.average(inter_target, axis=0), num)
+
+        # print('name:',name)
+        for ii in range(num):
+            file_names_reorder.append(file_names_by_name_age[i][ii])
+            inner_centers.append(inner_center[ii].tolist())
+            inter_centers.append(inter_center[ii].tolist())
+            age_labels.append(age_label[ii].tolist())
+            name_labels.append(name_label[ii].tolist())
+            gender_labels.append(gender_label[ii].tolist())
+
+    print('Resorted Done!')
+    return np.array(file_names_reorder), np.array(inner_centers), np.array(inter_centers), \
+           np.array(age_labels), np.array(name_labels), np.array(gender_labels)
+
+def draw_loss_metric(save_dir, npy_name):
+
+    import matplotlib as mpl
+    mpl.use('Agg')
+
+    if os.path.exists(save_dir+npy_name + ".png"):
+        print('remove loss png')
+        os.remove(save_dir+npy_name + ".png")
+
+    # Create a new figure of size 8x6 points, using 80 dots per inch
+    # figure(figsize=(8, 6), dpi=80)
+
+    # Create a new subplot from a grid of 1x1
+    # subplot(1, 1, 1)
+
+    # X = np.linspace(-np.pi, np.pi, 256,endpoint=True)
+    # C,S = np.cos(X), np.sin(X)
+    F = np.load(save_dir + npy_name + '.npy')
+    X = np.linspace(1, len(F), len(F), endpoint=True)
+
+    # Plot cosine using blue color with a continuous line of width 1 (pixels)
+    plot(X, F, color="blue", linewidth=1.0, linestyle="-")
+    savefig(save_dir+npy_name + ".png", dpi=80)
+    # show()
+
+
+
 
 if __name__ == '__main__':
-    images_age_label_identity_list = \
-        load_celebrity_image('./data/mat/', 'celebrityImageData.mat',
-                             ['53_Mark_Hamill_0012.jpg', '53_Mark_Hamill_0013.jpg',
-                              '53_Robin_Williams_0007.jpg', '53_Robin_Williams_0006.jpg','53_Robin_Williams_0007.jpg'])
-    #images_age_label_identity_list = load_celebrity_image('./data/mat/','celebrityData.mat', 100, False)
-    from FaceAging import FaceAging
-
-    fa_model = FaceAging(
-        is_training=True,  # flag for training or testing mode
-        save_dir='save',  # path to save checkpoints, samples, and summary
-        dataset_name='CACD'  # name of the dataset in the folder ./data
-    )
-    fa_model.generate_latant_center(images_age_label_identity_list)
+    draw_loss_metric('./save/metric/', 'loss_E')
